@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zählerschrank bestücken – VDE-AR-N 4100 / TAB SWM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef0ee; --ink:#1d2327; --muted:#5d666d; --line:#c9cdc9;
+  --cab:#3b4045; --field:#e4e6e2; --rail1:#c4c8cc; --rail2:#f4f5f6;
+  --ok:#2e7d32; --okbg:#e7f4e8; --bad:#c62828; --badbg:#fdecec; --warn:#b26a00; --warnbg:#fff4e0;
+  --accent:#e0622b; --U:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 22px;background:#fff;border-bottom:1px solid var(--line)}
+header h1{font-size:19px;margin:0;font-weight:700;letter-spacing:-.01em}
+header h1 small{display:block;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:0}
+.taskchip{display:flex;align-items:center;gap:8px;background:#fff3ea;border:1px solid #f3c4ad;color:#8a3a14;padding:6px 10px;border-radius:8px;font-size:13px;font-weight:600}
+.spacer{flex:1}
+.btn{font:inherit;font-size:13.5px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 12px;border-radius:7px;cursor:pointer}
+.btn:hover{background:#f4f5f4}
+.btn.sm{font-size:12.5px;padding:5px 10px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(.95)}
+.toggle{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+main{display:grid;grid-template-columns:290px minmax(0,1fr) 340px;gap:18px;padding:18px 22px;align-items:start}
+@media (max-width:1400px){main{grid-template-columns:270px minmax(0,1fr)}#side{grid-column:1 / -1}}
+@media (max-width:1000px){main{grid-template-columns:1fr}}
+.panel{background:#fff;border:1px solid var(--line);border-radius:10px}
+.panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0;padding:12px 14px 8px}
+
+/* Palette */
+#pal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:4px 12px 14px;max-height:calc(100vh - 170px);overflow:auto}
+.pcard{min-width:0;position:relative;border:1px solid var(--line);border-radius:8px;padding:6px;background:#fafbfa;cursor:grab;touch-action:none;user-select:none;display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .15s, box-shadow .15s}
+.pcard:hover{border-color:#9aa3a9;box-shadow:0 2px 6px rgba(0,0,0,.07)}
+.pcard.empty{opacity:.32;cursor:default;pointer-events:none}
+.pcard .pv{height:72px;display:flex;align-items:center;justify-content:center;width:100%;overflow:hidden}
+.pcard .pv > *{zoom:.62}
+.pcard .pname{font-size:11.5px;line-height:1.25;text-align:center;font-weight:500}
+.pcard .cnt{position:absolute;top:4px;right:6px;font:600 11px "IBM Plex Mono",monospace;color:var(--muted)}
+#palette.droptarget{outline:3px dashed var(--accent);outline-offset:-3px}
+.legend{font-size:12px;color:var(--muted);padding:0 14px 10px}
+
+/* Konfigurator-Leiste */
+.cfg{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper .lab{font-size:13px;font-weight:600}
+.stepper .lab small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+.stepper button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:#f7f8f7;font:700 18px/1 "IBM Plex Sans";cursor:pointer;color:var(--ink)}
+.stepper button:hover{background:#fff3ea;border-color:var(--accent);color:var(--accent)}
+.stepper button:disabled{opacity:.35;cursor:default;background:#f7f8f7;border-color:var(--line);color:var(--ink)}
+.stepper b{min-width:26px;text-align:center;font:600 20px "IBM Plex Mono",monospace}
+.cfg .sep{width:1px;height:34px;background:var(--line)}
+.cfginfo{font-size:12px;color:var(--muted)}
+.zoomctl{display:flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;color:var(--muted)}
+.zoomctl button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 9px;cursor:pointer;font:600 13px "IBM Plex Sans"}
+#cabWrap{overflow:auto;padding:4px 2px 14px;max-height:calc(100vh - 150px)}
+.cfg,.cabinet,#pal{user-select:none;-webkit-user-select:none}
+body.noside main{grid-template-columns:290px minmax(0,1fr)}
+body.noside #side{display:none}
+
+/* Cabinet */
+.cabinet{background:var(--cab);padding:14px;border-radius:12px;display:inline-flex;gap:10px;align-items:stretch;box-shadow:0 10px 30px rgba(0,0,0,.18), inset 0 0 0 2px #2a2e32}
+.field{background:var(--field);border-radius:5px;width:calc(12 * var(--U) + 30px);display:flex;flex-direction:column;padding:6px 0;box-shadow:inset 0 0 0 1px #c8cbc6;flex:none}
+.fhead{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#4a5157;text-align:center;padding:3px 4px 6px;line-height:1.25}
+.fhead span{display:block;font-size:11.5px;text-transform:none;letter-spacing:0;color:var(--accent);font-weight:700}
+.zone{position:relative;margin:4px 8px;border:1.5px dashed #b4b8b3;border-radius:6px;display:flex;flex-direction:column;justify-content:center;padding:18px 6px 14px;transition:background .12s,border-color .12s}
+.zone.over{background:#fff3ea;border-color:var(--accent);border-style:solid}
+.zone.full{background:var(--badbg);border-color:var(--bad)}
+.zlabel{position:absolute;top:3px;left:7px;right:7px;font-size:10.5px;font-weight:600;color:#535b61;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zcap{position:absolute;bottom:2px;right:7px;font:500 10px "IBM Plex Mono",monospace;color:#7b8389}
+body.nolabels .zlabel, body.nolabels .bbcap{visibility:hidden}
+.rail{position:relative;flex:1;display:flex;align-items:center}
+.rail::before{content:"";position:absolute;left:-2px;right:-2px;top:50%;height:28px;transform:translateY(-50%);background:linear-gradient(var(--rail1),var(--rail2) 35%,#d9dcdf 60%,#a6abb0);border-radius:2px;box-shadow:0 1px 1px rgba(0,0,0,.15)}
+.rail.norail::before{display:none}
+.slots{position:relative;display:flex;align-items:center;min-height:40px;width:100%;justify-content:flex-start}
+.z-zf .slots{flex-wrap:wrap;gap:8px 4px;padding:4px 0;justify-content:center}
+.z-zf .placed.m{order:0}.z-zf .placed:not(.m){order:1}
+.z-aar{min-height:128px}.z-zf{min-height:150px}.z-rfz{min-height:104px}.z-nar{min-height:128px}
+.z-apz{min-height:118px}.z-v{min-height:112px}.z-kl{min-height:86px}
+.vf .zone.z-v{flex:1}
+.busbars{margin:2px 10px 6px;display:flex;flex-direction:column;gap:3px}
+.busbars i{display:block;height:5px;border-radius:2px}
+.bbcap{font-size:9.5px;color:#666e74;text-align:center;margin-top:2px}
+.feed{height:16px;margin:auto auto 0;width:60%;background:linear-gradient(90deg,#222 0 18%,#6b4a2b 18% 36%,#333 36% 54%,#888 54% 72%,#2a5db0 72% 86%,#9ec03a 86%);border-radius:0 0 4px 4px;opacity:.85}
+.feed.none{visibility:hidden}
+
+/* Placed wrapper */
+.placed{position:relative;cursor:grab;touch-action:none;user-select:none}
+.placed.dragging{opacity:.25}
+.placed .badge{position:absolute;top:-9px;right:-6px;width:18px;height:18px;border-radius:50%;color:#fff;font:700 12px/18px "IBM Plex Sans";text-align:center;z-index:3;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.placed.st-ok > .dv{box-shadow:0 0 0 2.5px var(--ok)}
+.placed.st-bad > .dv{box-shadow:0 0 0 2.5px var(--bad)}
+.placed.st-warn > .dv{box-shadow:0 0 0 2.5px #f0a020}
+.placed.st-ok .badge{background:var(--ok)}
+.placed.st-bad .badge{background:var(--bad)}
+.placed.st-warn .badge{background:#f0a020}
+.placed.sel > .dv{outline:2px solid #1e88e5;outline-offset:2px}
+.ghost{position:fixed;pointer-events:none;z-index:1000;opacity:.92;filter:drop-shadow(0 8px 14px rgba(0,0,0,.3))}
+
+/* Devices */
+.dv{position:relative;flex:none}
+.mod{height:78px;background:#fbfbf8;border:1px solid #aeb2b5;border-radius:3px;display:flex;flex-direction:column}
+.mod .term{height:15px;display:flex;justify-content:space-around;align-items:center;background:#ececea;border-bottom:1px solid #d3d5d3}
+.mod .term:last-child{border-bottom:0;border-top:1px solid #d3d5d3}
+.mod .term s{width:7px;height:7px;border-radius:50%;background:radial-gradient(#9da2a6,#5d6266);display:block;text-decoration:none}
+.mod .face{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative}
+.mod .lbl{font:600 7.5px/1 "IBM Plex Mono",monospace;color:#333;text-align:center;white-space:nowrap}
+.mod .lever{width:calc(100% - 8px);height:14px;border-radius:2px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.mod.one .lever{width:8px}
+.mod .dial{width:12px;height:12px;border-radius:50%;border:2px solid #555;background:#ddd}
+.mod .tbtn{position:absolute;right:4px;bottom:3px;width:10px;height:10px;border-radius:2px;background:#f6c343;font:700 7px/10px "IBM Plex Sans";text-align:center;color:#333}
+.mod.sh{background:#e9eaeb}
+.mod.sh .plomb{position:absolute;left:3px;top:3px;width:7px;height:7px;border-radius:50%;background:#c62828}
+.mod.typb{background:#eef4fb}
+.mod.pv .face{background:linear-gradient(#fffbe6,#fff)}
+.mod.wb .face{background:linear-gradient(#e9f6ee,#fff)}
+.spd{height:78px;background:#f5f5f2;border:1px solid #aeb2b5;border-radius:3px;display:flex;gap:2px;padding:4px 2px}
+.spd > div{flex:1;background:#fff;border:1px solid #c2c5c7;border-radius:2px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:4px 0}
+.spd .win{width:8px;height:8px;background:#43a047;border-radius:1px}
+.spd .t{font:700 7px "IBM Plex Mono",monospace;color:#444}
+.spd.t1 > div{background:#fdf7e3}
+.ehz{width:104px;height:124px;background:linear-gradient(#f4f4f2,#e2e3e0);border:1px solid #9ea3a6;border-radius:6px;padding:9px;display:flex;flex-direction:column;gap:6px}
+.ehz .lcd{background:#b9c7a6;border:2px solid #6c7563;border-radius:3px;font:600 9px "IBM Plex Mono",monospace;color:#25301d;padding:5px 4px;line-height:1.35;white-space:nowrap}
+.ehz .row{display:flex;justify-content:space-between;align-items:center;font:600 8px "IBM Plex Sans";color:#555}
+.ehz .led{width:7px;height:7px;border-radius:50%;background:#e53935}
+.ehz .opt{width:16px;height:16px;border-radius:50%;border:2px solid #555;background:#222}
+.box{height:76px;background:linear-gradient(#e9edef,#d4dadd);border:1px solid #98a0a5;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font:700 9px "IBM Plex Sans";color:#3a4247;text-align:center}
+.box.dc{background:linear-gradient(#f3f3f0,#dcdcd6)}
+.box.dc .knob{width:30px;height:30px;border-radius:50%;background:#d32f2f;border:3px solid #f2c94c}
+.box .leds{display:flex;gap:4px}.box .leds i{width:6px;height:6px;border-radius:50%;background:#4caf50;display:block}.box .leds i:nth-child(3){background:#fbc02d}
+.apz{height:80px;background:#fff;border:1px solid #9ea3a6;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:700 10px "IBM Plex Sans";color:#333}
+.apz .ports{display:flex;gap:8px}.apz .ports i{width:22px;height:18px;background:#333;border-radius:2px;display:block;clip-path:polygon(0 0,100% 0,100% 75%,70% 75%,70% 100%,30% 100%,30% 75%,0 75%)}
+.apz small{font-weight:500;font-size:8px;color:#666}
+.termb{display:flex;flex-direction:column;align-items:center;gap:3px}
+.kl{display:flex;height:52px;gap:1px}
+.kl i{display:block;width:calc(var(--U) / 2 - 1px);height:100%;border-radius:2px;border:1px solid rgba(0,0,0,.25)}
+.kl.n i{background:#2a6fd1}
+.kl.pe i{background:repeating-linear-gradient(135deg,#4caf50 0 5px,#f2d335 5px 10px)}
+.kl.l5 i{width:calc(var(--U) - 1px)}
+.kl.st i{width:4px;background:#9aa0a6;height:70%;align-self:center}
+.termb .tl{font:600 8px "IBM Plex Mono",monospace;color:#333;background:#fff;padding:0 3px;border-radius:2px}
+.hak{width:144px;height:100px;background:linear-gradient(#9aa0a5,#7f868c);border:1px solid #5d6469;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#fff;font:700 9px "IBM Plex Sans"}
+.hak .nh{display:flex;gap:9px}.hak .nh i{width:26px;height:46px;background:#efe9d8;border:1px solid #888;border-radius:2px;display:block;box-shadow:inset 0 -9px 0 #c9c3b2, inset 0 9px 0 #c9c3b2}
+.hes{width:108px;height:40px;background:linear-gradient(#e8a46c,#b8693a);border:1px solid #8a4b25;border-radius:3px;display:flex;align-items:center;justify-content:space-around;padding:0 6px}
+.hes i{width:9px;height:9px;border-radius:50%;background:radial-gradient(#ddd,#777);display:block}
+.ferr{width:144px;height:120px;background:#222;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#ddd;font:600 8px "IBM Plex Mono",monospace}
+.ferr .win{width:100px;height:56px;background:#d8dbd4;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center;color:#222;font-size:11px}
+.ferr .win::after{content:"";position:absolute;bottom:6px;left:20px;right:20px;height:4px;background:linear-gradient(90deg,#999 0 40%,#c62828 40% 50%,#999 50%)}
+
+/* Side panel */
+#side{display:flex;flex-direction:column}
+#side .inner{padding:4px 16px 16px;font-size:14px;line-height:1.5}
+#side section + section{border-top:1px solid var(--line)}
+#task p{margin:4px 0 8px;color:#353c41}
+#task ul{margin:0;padding-left:18px;font-size:13.5px;color:#353c41}
+#task li{margin:3px 0}
+#info h3{font-size:15px;margin:2px 0 4px}
+#info p{margin:4px 0;color:#353c41}
+.where{margin-top:6px;padding:8px 10px;border-radius:7px;font-size:13.5px}
+.where.ok{background:var(--okbg);color:#1b5e20}.where.bad{background:var(--badbg);color:#8e1b1b}.where.warn{background:var(--warnbg);color:#7a4900}
+.score{display:flex;align-items:baseline;gap:8px;margin:6px 0 8px}
+.score b{font-size:28px}
+.bar{height:8px;background:#eceeec;border-radius:4px;overflow:hidden;margin-bottom:10px}
+.bar i{display:block;height:100%;background:var(--ok);transition:width .4s}
+.res h4{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px}
+.res ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.res li{padding:7px 9px;border-radius:7px;font-size:13px;line-height:1.4}
+.res li b{display:block;font-size:13px}
+.res li.bad{background:var(--badbg)}.res li.miss{background:#fdf0f0;border-left:3px solid var(--bad)}.res li.warn{background:var(--warnbg)}.res li.ok{background:var(--okbg)}
+.res h4.bad{color:var(--bad)}.res h4.warn{color:var(--warn)}.res h4.ok{color:var(--ok)}
+.allgood{background:var(--okbg);color:#1b5e20;border-radius:8px;padding:10px 12px;font-weight:600}
+details summary{cursor:pointer;font-size:13px;color:var(--muted);margin-top:10px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#222;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:2000;max-width:80vw}
+#toast.show{opacity:1;transform:translateX(-50%)}
+
+/* Auswahl / Touch */
+.pcard,.placed{-webkit-touch-callout:none;touch-action:manipulation}
+.pcard.arm{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);background:#fff3ea}
+.placed.lift > .dv, .pcard.lift{transform:scale(1.06);box-shadow:0 6px 16px rgba(0,0,0,.25)}
+body.armed .zone{border-color:#e9a27f;cursor:copy}
+body.armed .zone:hover{background:#fff3ea}
+#selbar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:1200;background:#1f2427;color:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);width:min(560px,calc(100vw - 20px));padding:8px 8px 8px 14px}
+#selbar.hidden{display:none}
+.sb-row{display:flex;align-items:center;gap:6px}
+.sb-txt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.sb-txt b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-txt span{font-size:12px;color:#c7cdd1}
+.sb-b{flex:none;min-width:38px;height:38px;border-radius:8px;border:1px solid #4a5258;background:#2c3337;color:#fff;font:600 13px "IBM Plex Sans";cursor:pointer;padding:0 10px}
+.sb-b:hover{background:#3a4247}
+.sb-more{display:none;font-size:13px;line-height:1.45;color:#e3e7ea;padding:6px 4px 2px}
+.sb-more p{margin:0 0 6px}
+#selbar.open .sb-more{display:block}
+#selbar .where{color:#1d2327}
+.btn .s,.toggle .s{display:none}
+#start{align-items:flex-start}
+.startbox{margin:auto}
+
+/* Grobe Zeiger (Touch): größere Bedienelemente */
+@media (pointer:coarse){
+  .stepper button{width:40px;height:40px}
+  .zoomctl button{padding:7px 12px}
+  .btn{padding:9px 13px}
+  .toggle input{width:20px;height:20px}
+}
+
+/* Tablet quer / kleine Laptops */
+@media (max-width:1400px){
+  #cabWrap{max-height:none}
+}
+
+/* Tablet hochkant und Smartphone: Bauteilliste als Leiste unten */
+@media (max-width:1000px){
+  header{padding:8px 12px;gap:8px;position:sticky;top:0;z-index:950}
+  header h1{font-size:16px}
+  header h1 small{display:none}
+  .spacer{display:none}
+  #btnSide{display:none}
+  .btn .l{display:none}.btn .s{display:inline}
+  .toggle .l{display:none}.toggle .s{display:inline}
+  main{grid-template-columns:minmax(0,1fr);padding:10px 10px 0;gap:12px}
+  main > section{min-width:0}
+  html,body{overflow-x:hidden}
+  #palette{position:fixed;left:0;right:0;bottom:0;z-index:900;border-radius:14px 14px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.15);border-bottom:0}
+  #palette h2{padding:8px 12px 2px;font-size:11.5px}
+  #palette .legend{display:none}
+  #pal{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;max-height:none;padding:4px 10px 10px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+  .pcard{flex:0 0 112px;scroll-snap-align:start}
+  .pcard .pv{height:58px}
+  .pcard .pv > *{zoom:.5}
+  .pcard .pname{font-size:11px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  body{padding-bottom:170px}
+  #selbar{bottom:176px}
+  #toast{bottom:236px}
+  .cfg{gap:10px 14px;padding:10px}
+  .cfg .sep{display:none}
+  .zoomctl{margin-left:0;width:100%;justify-content:flex-end}
+  .cfginfo{width:100%;order:9}
+  #side{margin-bottom:12px}
+}
+@media (max-width:560px){
+  .taskchip{font-size:12px;padding:5px 8px;max-width:100%;}
+  header h1{width:100%}
+  .stepper .lab small{display:none}
+  .stepper{gap:6px}
+  .pcard{flex-basis:96px}
+  .startbox{padding:16px}
+  .startbox h2{font-size:20px}
+  .scard .pic{height:96px}
+  .scard .pic svg{width:150px;height:90px}
+}
+@media (max-height:520px) and (max-width:1000px){
+  /* Smartphone quer: flachere Bauteilleiste */
+  .pcard .pv{height:40px}.pcard .pv > *{zoom:.38}
+  .pcard{flex-basis:100px}
+  body{padding-bottom:130px} #selbar{bottom:136px}
+}
+
+/* Code-Dialog */
+#codeDlg{position:fixed;inset:0;background:rgba(38,43,47,.6);z-index:1600;display:flex;align-items:center;justify-content:center}
+#codeDlg.hidden{display:none}
+.codebox{background:#fff;border-radius:12px;padding:22px 24px;width:min(360px,92vw);box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.codebox h3{margin:0 0 4px;font-size:18px}
+.codebox p{margin:0 0 14px;color:var(--muted);font-size:13.5px}
+#codeIn{width:100%;font:600 26px "IBM Plex Mono",monospace;letter-spacing:.5em;text-align:center;padding:10px;border:2px solid var(--line);border-radius:8px;outline:none}
+#codeIn:focus{border-color:var(--accent)}
+#codeIn.err{border-color:var(--bad);animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#codeMsg{min-height:20px;font-size:13px;color:var(--bad);margin:6px 0 10px}
+.codebtns{display:flex;gap:8px;justify-content:flex-end}
+
+/* Aufgabenauswahl */
+#start{position:fixed;inset:0;background:rgba(38,43,47,.72);backdrop-filter:blur(3px);z-index:1500;display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto}
+#start.hidden{display:none}
+.startbox{background:#fff;border-radius:14px;max-width:1120px;width:100%;padding:26px 28px 28px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.startbox h2{margin:0 0 4px;font-size:24px}
+.startbox > p{margin:0 0 20px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.cards{grid-template-columns:1fr}}
+.scard{border:2px solid var(--line);border-radius:12px;padding:0;background:#fafbfa;cursor:pointer;text-align:left;font:inherit;color:inherit;display:flex;flex-direction:column;overflow:hidden;transition:border-color .15s,transform .15s,box-shadow .15s}
+.scard:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.1)}
+.scard .pic{background:linear-gradient(#dfeaf3,#f2f6f9);height:130px;display:flex;align-items:flex-end;justify-content:center}
+.scard .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.scard .num{font:600 12px "IBM Plex Mono",monospace;color:var(--accent)}
+.scard h3{margin:0;font-size:18px}
+.scard p{margin:0;font-size:13.5px;color:#4a5157;line-height:1.45}
+.scard .lvl{margin-top:auto;padding-top:8px;font-size:12px;color:var(--muted)}
+.scard .go{margin-top:8px;align-self:flex-start;background:var(--accent);color:#fff;border-radius:7px;padding:7px 12px;font-weight:600;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Zählerschrank planen &amp; bestücken<small>Nach VDE-AR-N 4100 und TAB 2023 der SWM Infrastruktur (München)</small></h1>
+  <div class="taskchip" id="taskchip">–</div>
+  <button class="btn sm" id="btnTask"><span class="l">Aufgabe wechseln</span><span class="s">Aufgabe</span></button>
+  <div class="spacer"></div>
+  <label class="toggle"><input type="checkbox" id="hideLabels"> <span class="l">Namen ausblenden</span><span class="s">Namen aus</span></label>
+  <button class="btn" id="btnSide" title="Aufgabe/Auswertung ein- oder ausblenden">Seitenleiste</button>
+  <button class="btn" id="btnReset"><span class="l">Zurücksetzen</span><span class="s">↺ Neu</span></button>
+  <button class="btn" id="btnSolve"><span class="l">Lösung zeigen</span><span class="s">Lösung</span></button>
+  <button class="btn primary" id="btnCheck"><span class="l">Bestückung prüfen</span><span class="s">✓ Prüfen</span></button>
+</header>
+
+<main>
+  <aside class="panel" id="palette">
+    <h2>Bauteile</h2>
+    <div class="legend">Nicht jedes Bauteil gehört in den Zählerschrank.<br><b>Ziehen</b> (Maus/Stift; Touch: lange drücken) oder <b>antippen</b> und dann den Bereich im Schrank antippen. Zum Entfernen zurück in diese Liste.</div>
+    <div id="pal"></div>
+  </aside>
+
+  <section>
+    <div class="cfg">
+      <div class="stepper"><div class="lab">Zählerfelder<small>je 1–2 eHZ (BKE-I)</small></div>
+        <button data-step="zp" data-d="-1" aria-label="Zählerfeld entfernen">−</button><b id="zpN">1</b><button data-step="zp" data-d="1" aria-label="Zählerfeld hinzufügen">+</button></div>
+      <div class="sep"></div>
+      <div class="stepper"><div class="lab">RfZ-Feld<small>seitlich (SWM)</small></div>
+        <button data-step="sf" data-d="-1" aria-label="RfZ-Feld entfernen">−</button><b id="sfN">0</b><button data-step="sf" data-d="1" aria-label="RfZ-Feld hinzufügen">+</button></div>
+      <div class="sep"></div>
+      <div class="stepper"><div class="lab">Verteilerfelder<small>1. Feld mit APZ-Bereich unten</small></div>
+        <button data-step="vf" data-d="-1" aria-label="Verteilerfeld entfernen">−</button><b id="vfN">1</b><button data-step="vf" data-d="1" aria-label="Verteilerfeld hinzufügen">+</button></div>
+      <div class="sep"></div>
+      <div class="cfginfo" id="cfginfo"></div>
+      <div class="zoomctl">Ansicht <button id="zOut">−</button><span id="zVal">100 %</span><button id="zIn">+</button><button id="zFit">Einpassen</button></div>
+    </div>
+    <div id="cabWrap"><div class="cabinet" id="cabinet"></div></div>
+  </section>
+
+  <aside class="panel" id="side">
+    <section id="task"><h2>Aufgabe</h2><div class="inner" id="taskBody"></div></section>
+    <section id="info"><h2>Info</h2><div class="inner" id="infoBody"></div></section>
+    <section id="result"><h2>Auswertung</h2><div class="inner" id="resBody"></div></section>
+  </aside>
+</main>
+
+<div id="start">
+  <div class="startbox">
+    <h2>Aufgabe auswählen</h2>
+    <p>Wähle ein Gebäude. Plane anschließend die Anzahl der Zählerfelder und Verteilerfelder mit den Tastern und bestücke den Zählerschrank.</p>
+    <div class="cards" id="cards"></div>
+  </div>
+</div>
+<div id="codeDlg" class="hidden" role="dialog" aria-modal="true" aria-labelledby="codeTitle">
+  <form class="codebox" id="codeForm" autocomplete="off">
+    <h3 id="codeTitle">Lösung anzeigen</h3>
+    <p>Die Musterlösung ist für die Lehrkraft geschützt. Bitte den 4-stelligen Code eingeben.</p>
+    <input id="codeIn" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="····" aria-label="4-stelliger Code">
+    <div id="codeMsg"></div>
+    <div class="codebtns"><button type="button" class="btn" id="codeCancel">Abbrechen</button><button type="submit" class="btn primary" id="codeOk">Lösung anzeigen</button></div>
+  </form>
+</div>
+<div id="selbar" class="hidden" aria-live="polite"></div>
+<div id="toast"></div>
+
+<script>
+const U = 18;
+const V = 'v';
+// ---------- Bereichsarten ----------
+const ZK = {
+  aar:{name:'Anlagenseitiger Anschlussraum (AAR)', short:'AAR', cap:12,
+       bad:'Der AAR liegt hinter dem Zähler, ist aber kein Stromkreisverteiler: Hier gehören nur Abgangsklemmen zur Hauptleitung, ggf. Hauptschalter und Überspannungsschutz hin.'},
+  zf:{name:'Zählerfeld – Messeinrichtungen (BKE-I, max. 2 Zähler)', short:'Zähler', cap:24,
+       bad:'Der Bereich für die Messeinrichtungen (BKE-I) ist ausschließlich für die Zähler (max. 2) und ggf. das Smart-Meter-Gateway vorgesehen.'},
+  rfz:{name:'Raum für Zusatzanwendungen (RfZ)', short:'RfZ', cap:12,
+       bad:'Der RfZ ist für Steuer- und Kommunikationstechnik des Netz- bzw. Messstellenbetreibers reserviert.'},
+  nar:{name:'Netzseitiger Anschlussraum (NAR)', short:'NAR', cap:12,
+       bad:'Der NAR ist der plombierte Vorzählerbereich (ungezählte Energie). Hier sitzen nur SH-Schalter, SPD Typ 1 und der Abgriff für die RfZ/APZ-Versorgung.'},
+  rfzs:{name:'RfZ-Feld (seitlich, plombierbar)', short:'RfZ-Feld', cap:12,
+       bad:'Das seitliche RfZ-Feld ist nach den SWM-Hinweisen für Steuer- und Kommunikationstechnik des Messstellen-/Netzbetreibers reserviert (Gateways, Steuerbox).'},
+  apz:{name:'APZ-Bereich', short:'APZ', cap:12,
+       bad:'Der APZ-Bereich ist nur für den Abschlusspunkt Zählerplatz vorgesehen.'},
+  v:{name:'Stromkreisverteiler', short:'Verteiler', cap:12,
+       bad:'Der Stromkreisverteiler ist der Nachzählerbereich für die Endstromkreise – Betriebsmittel des Zählerplatzes oder des Netzbetreibers haben hier nichts verloren.'},
+  kl:{name:'Klemmenleiste', short:'Klemmen', cap:12, bad:'Die Klemmenleiste ist nur für N- und PE-Klemmen vorgesehen.'}
+};
+
+// ---------- Bauteilarten ----------
+const TYPES = [
+ {id:'ehz', kind:'ehz', te:8, zones:['zf'], name:'Elektronischer Haushaltszähler (eHZ)',
+  desc:'Moderne Messeinrichtung, die auf die BKE-I gesteckt wird. Als Zweirichtungszähler erfasst er auch eingespeiste Energie (z. B. PV).',
+  ok:'Richtig: Der eHZ wird im Zählerfeld auf die BKE-I gesteckt.',
+  bad:'Der eHZ gehört auf die BKE-I im Zählerfeld (Bereich für die Messeinrichtung).'},
+ {id:'sh', kind:'mod', te:4.5, poles:3, tag:'SH E35A', lever:'#d32f2f', cls:'sh', zones:['nar'], name:'SH-Schalter E 35 A, 3-polig',
+  desc:'Selektiver Hauptleitungsschutzschalter: sperr- und plombierbare Überstrom-Schutzeinrichtung vor der Messeinrichtung, selektiv zur Hausanschlusssicherung.',
+  ok:'Richtig: Der SH-Schalter ist die netzseitige Trennvorrichtung und sitzt im netzseitigen Anschlussraum (NAR) unterhalb des Zählerfelds.',
+  bad:'Der SH-Schalter liegt vor dem Zähler (Vorzählerbereich) und gehört in den netzseitigen Anschlussraum (NAR).'},
+ {id:'rcd', kind:'mod', te:4, poles:4, tag:'FI 40A 30mA', lever:'#333', test:true, zones:[V], name:'FI-Schutzschalter (RCD) Typ A, 40 A / 30 mA',
+  desc:'Fehlerstrom-Schutzeinrichtung für den zusätzlichen Schutz der Endstromkreise.',
+  ok:'Richtig: RCDs gehören in den Stromkreisverteiler (Nachzählerbereich).',
+  bad:'RCDs schützen Endstromkreise und gehören in den Stromkreisverteiler.'},
+ {id:'rcdb', kind:'mod', te:4, poles:4, tag:'FI-B 40A 30mA', lever:'#333', test:true, cls:'typb', zones:[V], name:'FI-Schutzschalter Typ B, 40 A / 30 mA',
+  desc:'Allstromsensitive Fehlerstrom-Schutzeinrichtung, erfasst auch glatte Gleichfehlerströme – z. B. für Ladeeinrichtungen von E-Fahrzeugen.',
+  ok:'Richtig: Der RCD Typ B schützt den Wallbox-Stromkreis und sitzt im Stromkreisverteiler.',
+  bad:'Der RCD Typ B gehört in den Stromkreisverteiler vor den Wallbox-Stromkreis.'},
+ {id:'ls16', kind:'mod', te:1, poles:1, tag:'B16', lever:'#333', zones:[V], name:'LS-Schalter B16, 1-polig',
+  desc:'Leitungsschutzschalter für einen Endstromkreis (z. B. Steckdosen, Heizung).',
+  ok:'Richtig: Leitungsschutzschalter für Endstromkreise sitzen im Stromkreisverteiler.',
+  bad:'LS-Schalter für Endstromkreise gehören in den Stromkreisverteiler.'},
+ {id:'ls10', kind:'mod', te:1, poles:1, tag:'B10', lever:'#333', zones:[V], name:'LS-Schalter B10, 1-polig',
+  desc:'Leitungsschutzschalter für einen Endstromkreis (z. B. Beleuchtung).',
+  ok:'Richtig: Leitungsschutzschalter für Endstromkreise sitzen im Stromkreisverteiler.',
+  bad:'LS-Schalter für Endstromkreise gehören in den Stromkreisverteiler.'},
+ {id:'afdd', kind:'mod', te:2, poles:2, tag:'AFDD B16', lever:'#333', test:true, zones:[V], name:'Brandschutzschalter (AFDD) B16',
+  desc:'Fehlerlichtbogen-Schutzeinrichtung, z. B. für Schlaf- und Aufenthaltsräume.',
+  ok:'Richtig: Der AFDD schützt einen Endstromkreis und sitzt im Stromkreisverteiler.',
+  bad:'Der AFDD schützt einen Endstromkreis und gehört in den Stromkreisverteiler.'},
+ {id:'tlz', kind:'mod', te:1, poles:1, tag:'TLZ', dial:true, zones:[V], name:'Treppenlicht-Zeitschalter',
+  desc:'Schaltet die Treppenhausbeleuchtung nach Tastendruck für eine einstellbare Zeit ein (Allgemeinstrom).',
+  ok:'Richtig: Der Treppenlicht-Zeitschalter ist ein Reiheneinbaugerät im Allgemein-Stromkreisverteiler.',
+  bad:'Der Treppenlicht-Zeitschalter gehört in den Stromkreisverteiler (Allgemeinstrom).'},
+ {id:'lswb', kind:'mod', te:3, poles:3, tag:'B16 3p WB', lever:'#2e7d32', cls:'wb', zones:[V], name:'LS-Schalter B16, 3-polig – Wallbox 11 kW',
+  desc:'Leitungsschutzschalter für den Stromkreis der Wallbox (11 kW, 16 A dreiphasig).',
+  ok:'Richtig: Der Wallbox-Stromkreis wird im Stromkreisverteiler abgesichert.',
+  bad:'Der LS-Schalter für die Wallbox ist ein Endstromkreis-Schutz und gehört in den Stromkreisverteiler.'},
+ {id:'lspv', kind:'mod', te:3, poles:3, tag:'B25 3p PV', lever:'#f9a825', cls:'pv', zones:[V], name:'LS-Schalter B25, 3-polig – PV-Wechselrichter',
+  desc:'Absicherung der AC-Leitung zum PV-Wechselrichter (Einspeisestromkreis).',
+  ok:'Richtig: Die AC-Seite des Wechselrichters wird im Stromkreisverteiler hinter dem Zweirichtungszähler abgesichert.',
+  bad:'Der Einspeisestromkreis des Wechselrichters wird im Stromkreisverteiler (hinter dem Zähler) abgesichert.'},
+ {id:'nkl', kind:'kl', color:'n', te:4, zones:['kl'], tag:'N', name:'N-Klemmenblock (blau)',
+  desc:'Reihenklemmen zum Anschluss der Neutralleiter der Endstromkreise.',
+  ok:'Richtig: N-Klemmen gehören auf die Klemmenleiste im Verteilerfeld.',
+  bad:'N-Klemmen für die Endstromkreise gehören auf die Klemmenleiste des Verteilerfelds.'},
+ {id:'pekl', kind:'kl', color:'pe', te:4, zones:['kl'], tag:'PE', name:'PE-Klemmenblock (grün-gelb)',
+  desc:'Reihenklemmen zum Anschluss der Schutzleiter der Endstromkreise.',
+  ok:'Richtig: PE-Klemmen gehören auf die Klemmenleiste im Verteilerfeld.',
+  bad:'PE-Klemmen für die Endstromkreise gehören auf die Klemmenleiste des Verteilerfelds.'},
+ {id:'apz', kind:'apz', te:8, zones:['apz'], name:'APZ-Modul (RJ45 + Spannungsversorgung)',
+  desc:'Abschlusspunkt Zählerplatz: Schnittstelle zwischen dem Telekommunikationsanschluss (z. B. Router) und dem Messsystem. Je Zählerschrankgruppe ein APZ (SWM: Lochblech mit 2 Hutschienen, 250 × 450 mm).',
+  ok:'Richtig: Der APZ sitzt im APZ-Bereich unten im Verteilerfeld 1.',
+  bad:'Der APZ braucht einen eigenen APZ-Bereich – er gehört nicht in Anschlussräume, RfZ oder Verteiler.'},
+ {id:'lsrfz', kind:'mod', te:1, poles:1, tag:'B10', lever:'#1565c0', zones:['nar'], name:'LS-Schalter 10 A (25 kA) – Versorgung APZ/RfZ',
+  desc:'Absicherung der 230-V-Spannungsversorgung für APZ und RfZ. Sie wird im ungezählten Bereich abgegriffen.',
+  ok:'Richtig (SWM): Die Spannungsversorgung für APZ/RfZ kommt aus dem netzseitigen Anschlussraum, abgesichert mit LS 10 A / 25 kA – einmal je Zählerschrankgruppe.',
+  bad:'Nach den SWM-Hinweisen wird die Versorgung für APZ/RfZ im netzseitigen Anschlussraum (NAR) abgegriffen und mit LS 10 A / 25 kA abgesichert.'},
+ {id:'stk', kind:'kl', color:'st', te:2, zones:['nar'], tag:'1–7', name:'Steuerleitungsklemme 7-polig (Rundsteuerung)',
+  desc:'Klemme mit den Steuerleitungen 1–7 (z. B. 1 = L1, 2 = N, 6 = steuerbare Verbrauchseinrichtung nach § 14a EnWG), verdrahtet zum APZ und RfZ.',
+  ok:'Richtig (SWM): Je Zählerfeld eine 7-polige Steuerleitungsklemme im unteren Anschlussraum, verdrahtet zum APZ und RfZ.',
+  bad:'Nach den SWM-Hinweisen sitzt die 7-polige Steuerleitungsklemme je Zählerfeld im unteren (netzseitigen) Anschlussraum.'},
+ {id:'stb', kind:'box', te:4, tag:'Steuerbox', zones:['rfz','rfzs'], name:'Steuerbox',
+  desc:'Steuereinrichtung des Netzbetreibers für steuerbare Verbrauchseinrichtungen wie Wallbox oder Wärmepumpe (§ 14a EnWG, Steuerleitung 6).',
+  ok:'Richtig: Die Steuerbox sitzt im Raum für Zusatzanwendungen (RfZ) bzw. im seitlichen RfZ-Feld.',
+  bad:'Steuer- und Kommunikationstechnik des Netz-/Messstellenbetreibers gehört in den Raum für Zusatzanwendungen (RfZ).'},
+ {id:'smgw', kind:'box', te:4, tag:'SMGW', zones:['rfz','zf','rfzs'], name:'Smart-Meter-Gateway (SMGW)',
+  desc:'Kommunikationseinheit des intelligenten Messsystems (iMSys). Nach den SWM-Hinweisen können bis zu 5 Messeinrichtungen über ein Gateway angebunden werden.',
+  ok:'Richtig: Das Gateway gehört zum Messsystem und sitzt im RfZ (bzw. im seitlichen RfZ-Feld) oder im Zählerfeld neben dem eHZ.',
+  bad:'Das SMGW ist Teil des Messsystems: Platz im RfZ, im seitlichen RfZ-Feld oder im Zählerfeld.'},
+ {id:'abk', kind:'kl', color:'l5', te:5, zones:['aar'], tag:'L1 L2 L3 N PE', name:'Abgangsklemmen Hauptleitung (5-polig)',
+  desc:'Reihenklemmen L1, L2, L3, N, PE für die Leitung vom Zählerplatz zum Stromkreisverteiler bzw. Wohnungsverteiler.',
+  ok:'Richtig: Die Leitung zum Stromkreisverteiler wird im anlagenseitigen Anschlussraum (AAR) angeschlossen.',
+  bad:'Die Abgangsklemmen zum Stromkreisverteiler gehören in den anlagenseitigen Anschlussraum (AAR).'},
+ {id:'hs', kind:'mod', te:3, poles:3, tag:'0 – I  63A', lever:'#f9a825', zones:['aar',V], name:'Hauptschalter (Lasttrennschalter) 63 A, 3-polig',
+  desc:'Lasttrennschalter zum Freischalten der Kundenanlage hinter dem Zähler.',
+  ok:'Richtig: Der Hauptschalter sitzt hinter dem Zähler – im AAR oder am Anfang des Stromkreisverteilers.',
+  bad:'Der Hauptschalter liegt hinter dem Zähler: AAR oder Verteilerfeld.'},
+ {id:'spd1', kind:'spd', t:1, te:4, zones:['nar','aar'], name:'Überspannungsschutz Typ 1 (Funkenstrecke)',
+  desc:'Blitzstromableiter, spannungsschaltend und netzfolgestromfrei – für energiereiche Überspannungen (z. B. Blitzeinschlag).',
+  ok:'Richtig: Im Vorzählerbereich (NAR) sind nur spannungsschaltende SPD Typ 1 zulässig; im AAR ist der Einbau ebenfalls möglich.',
+  bad:'Der Typ-1-Ableiter gehört möglichst nah an die Einspeisung: in den NAR (Vorzählerbereich) oder den AAR.'},
+ {id:'spd2', kind:'spd', t:2, te:4, zones:['aar',V], name:'Überspannungsschutz Typ 2 (Varistor)',
+  desc:'Überspannungsableiter für Schaltüberspannungen und induzierte Überspannungen.',
+  ok:'Richtig: Der Typ-2-Ableiter sitzt im Nachzählerbereich (AAR oder Stromkreisverteiler).',
+  bad:'Der Typ-2-Ableiter gehört in den Nachzählerbereich (AAR oder Stromkreisverteiler).',
+  badBy:{nar:'Im Vorzählerbereich (NAR) sind ausschließlich spannungsschaltende SPD Typ 1 zulässig – ein Varistor-Ableiter Typ 2 darf dort nicht eingebaut werden.'}},
+ {id:'hak', distractor:true, kind:'hak', te:8, zones:[], name:'Hausanschlusskasten (HAK) mit NH-Sicherungen',
+  desc:'Übergabestelle vom Verteilnetz des Netzbetreibers zur Kundenanlage.',
+  bad:'Der HAK ist Eigentum des Netzbetreibers und wird im Hausanschlussraum bzw. an der Hausanschlusswand montiert – nicht im Zählerschrank.',
+  omit:'Richtig weggelassen: Der HAK sitzt im Hausanschlussraum, nicht im Zählerschrank.'},
+ {id:'hes', distractor:true, kind:'hes', te:6, zones:[], name:'Haupterdungsschiene (HES)',
+  desc:'Sammelpunkt für den Schutzpotentialausgleich (Fundamenterder, Wasser, Gas, Heizung …).',
+  bad:'Die Haupterdungsschiene wird separat (meist im Hausanschlussraum) montiert – sie gehört nicht auf eine Tragschiene im Zählerschrank.',
+  omit:'Richtig weggelassen: Die Haupterdungsschiene wird separat im Hausanschlussraum montiert.'},
+ {id:'ferr', distractor:true, kind:'ferr', te:8, zones:[], name:'Ferraris-Zähler (Dreipunktbefestigung)',
+  desc:'Elektromechanischer Zähler mit Drehscheibe für Zählerplätze mit Dreipunktbefestigung.',
+  bad:'Die SWM lassen zwar auch Zählerplätze mit 3-Punkt-Befestigung zu – dieser Schrank ist aber mit BKE-I ausgeführt, darauf passt nur ein eHZ. Ferraris-Zähler werden zudem nicht mehr neu gesetzt.',
+  omit:'Richtig weggelassen: Auf die BKE-I gehört ein eHZ, kein Ferraris-Zähler.'},
+ {id:'dcfs', distractor:true, kind:'box', cls:'dc', te:4, tag:'DC-Trenner', zones:[], name:'DC-Freischalter (PV-Generator)',
+  desc:'Lasttrennschalter für die Gleichstromseite der PV-Anlage.',
+  bad:'Der DC-Freischalter gehört auf die Gleichstromseite – direkt am Wechselrichter bzw. Generatoranschlusskasten. Im Zählerschrank wird nur die AC-Seite angeschlossen.',
+  omit:'Richtig weggelassen: Der DC-Freischalter sitzt auf der Gleichstromseite am Wechselrichter, nicht im Zählerschrank.'},
+];
+const TBY = Object.fromEntries(TYPES.map(t=>[t.id,t]));
+
+// ---------- Szenarien ----------
+const SVG_EFH = `<svg viewBox="0 0 200 120" width="200" height="120"><rect x="0" y="112" width="200" height="8" fill="#9fb48a"/><rect x="58" y="62" width="84" height="50" fill="#f3efe6" stroke="#6b6b6b"/><polygon points="48,64 100,26 152,64" fill="#c0563a" stroke="#8d3a24"/><rect x="92" y="84" width="16" height="28" fill="#7a5a3a"/><rect x="66" y="74" width="16" height="13" fill="#9fc3e0" stroke="#6b6b6b"/><rect x="118" y="74" width="16" height="13" fill="#9fc3e0" stroke="#6b6b6b"/></svg>`;
+const SVG_3FH = `<svg viewBox="0 0 200 120" width="200" height="120"><rect x="0" y="112" width="200" height="8" fill="#9fb48a"/><rect x="55" y="36" width="90" height="76" fill="#efe9dc" stroke="#6b6b6b"/><polygon points="47,38 100,10 153,38" fill="#7d8790" stroke="#555"/>${[44,66,88].map(y=>`<rect x="65" y="${y}" width="16" height="13" fill="#9fc3e0" stroke="#6b6b6b"/><rect x="119" y="${y}" width="16" height="13" fill="#9fc3e0" stroke="#6b6b6b"/>`).join('')}<rect x="92" y="88" width="16" height="24" fill="#7a5a3a"/><rect x="94" y="44" width="12" height="36" fill="#d9e6ee" stroke="#6b6b6b"/></svg>`;
+const SVG_6P = `<svg viewBox="0 0 200 120" width="200" height="120"><rect x="0" y="112" width="200" height="8" fill="#9fb48a"/><rect x="30" y="34" width="110" height="78" fill="#e9e4d8" stroke="#6b6b6b"/><polygon points="24,36 85,14 146,36" fill="#7d8790" stroke="#555"/>${[0,1,2,3,4].map(i=>`<polygon points="${44+i*16},${30-i*0} ${56+i*16},${26-i*0} ${58+i*16},${30} ${46+i*16},${34}" fill="#2b4f86" stroke="#9fb3d6" stroke-width=".6"/>`).join('')}${[42,64,86].map(y=>`<rect x="40" y="${y}" width="15" height="12" fill="#9fc3e0" stroke="#6b6b6b"/><rect x="62" y="${y}" width="15" height="12" fill="#9fc3e0" stroke="#6b6b6b"/><rect x="94" y="${y}" width="15" height="12" fill="#9fc3e0" stroke="#6b6b6b"/><rect x="116" y="${y}" width="15" height="12" fill="#9fc3e0" stroke="#6b6b6b"/>`).join('')}<rect x="78" y="90" width="14" height="22" fill="#7a5a3a"/><rect x="150" y="84" width="10" height="20" rx="2" fill="#2e7d32"/><path d="M155 104 q4 6 12 6" stroke="#333" fill="none" stroke-width="2"/><rect x="164" y="98" width="30" height="12" rx="4" fill="#d34b2c"/><circle cx="170" cy="111" r="3" fill="#222"/><circle cx="188" cy="111" r="3" fill="#222"/></svg>`;
+
+const SCEN = [
+ {id:'efh', num:'Aufgabe 1', title:'Einfamilienhaus', svg:SVG_EFH, lvl:'Einstieg · 1 Kundenanlage',
+  teaser:'Neubau für eine Familie – ein Zählerplatz und der Stromkreisverteiler im selben Schrank.',
+  text:'Familie Berger baut ein Einfamilienhaus. Du planst den Zählerschrank nach VDE-AR-N 4100 und bestückst ihn.',
+  specs:['Ein Haushalt, Abrechnung über einen Zähler (eHZ)','Stromkreisverteiler für das ganze Haus im Zählerschrank (Steckdosen, Licht, Schlafzimmer mit Brandschutzschalter)','Vorbereitung für das intelligente Messsystem (APZ, RfZ-Versorgung)','Überspannungsschutz ist gewünscht'],
+  zp:1, vf:1, sf:0, labels:['EG'],
+  why:{zp:'1 Kundenanlage = 1 Zähler', vf:'1 Verteilerfeld (mit APZ-Bereich) reicht für den Stromkreisverteiler des Hauses', sf:'Bis 5 Messeinrichtungen ohne gesteuerte Messeinrichtung genügt der APZ nach VDE-AR-N 4100, Ziffer 7.7'},
+  inv:{ehz:1,sh:1,stk:1,abk:1,smgw:1,stb:1,lsrfz:1,apz:1,spd1:1,spd2:1,hs:1,rcd:2,ls16:4,ls10:2,afdd:1,nkl:1,pekl:1,hak:1,hes:1,ferr:1},
+  req:{apz:1,lsrfz:1,rcd:1,ls16:1},
+  sol:{zp:[{aar:['abk','spd2','hs'],zf:['ehz','smgw'],rfz:['stb'],nar:['sh','spd1','lsrfz','stk']}],
+       vf:[{rows:[['rcd','ls16','ls16','ls10','ls10','afdd'],['rcd','ls16','ls16'],[]],kl:['nkl','pekl']}]}},
+ {id:'3fh', num:'Aufgabe 2', title:'Dreifamilienhaus', svg:SVG_3FH, lvl:'Mittel · Mehrkundenanlage',
+  teaser:'Drei Wohnungen mit eigener Abrechnung plus Allgemeinstrom für Treppenhaus, Keller und Heizung.',
+  text:'Herr Yilmaz lässt ein Dreifamilienhaus errichten. Jede Wohnung wird separat abgerechnet. Plane die Zählerplätze und bestücke den Zählerschrank.',
+  specs:['3 Wohneinheiten, jede mit eigenem Zähler','Die Wohnungsverteiler befinden sich in den Wohnungen – vom Zählerschrank geht je eine Hauptleitung dorthin','Allgemeinstrom (Treppenhauslicht mit Zeitschalter, Kellerlicht, Heizung) wird separat gezählt und im Zählerschrank verteilt','Ein APZ für das Gebäude, Überspannungsschutz gewünscht'],
+  zp:4, vf:1, sf:0, labels:['Allgemein','EG','1. OG','2. OG'],
+  why:{zp:'3 Wohnungen + 1 Allgemeinstrom = 4 Zähler', vf:'Im Zählerschrank wird nur der Allgemeinstrom verteilt – 1 Verteilerfeld (mit APZ) genügt', sf:'Bis 5 Messeinrichtungen ohne gesteuerte Messeinrichtung genügt der APZ nach VDE-AR-N 4100, Ziffer 7.7'},
+  inv:{ehz:4,sh:4,stk:4,abk:4,smgw:1,stb:1,lsrfz:1,apz:1,spd1:1,spd2:1,hs:1,rcd:2,ls16:3,ls10:2,tlz:1,nkl:1,pekl:1,hak:1,hes:1,ferr:1},
+  req:{apz:1,lsrfz:1,rcd:1,ls16:1,tlz:1},
+  sol:{zp:[{aar:['abk','spd2'],zf:['ehz','smgw'],rfz:[],nar:['sh','spd1','lsrfz','stk']},
+           ...[1,2,3].map(()=>({aar:['abk'],zf:['ehz'],rfz:[],nar:['sh','stk']}))],
+       vf:[{rows:[['rcd','ls16','ls16','ls16','ls10','ls10','tlz'],[],[]],kl:['nkl','pekl']}]}},
+ {id:'6p', num:'Aufgabe 3', title:'6-Parteien-Haus mit Wallbox & PV', svg:SVG_6P, lvl:'Anspruchsvoll · Erzeugung & E-Mobilität',
+  teaser:'Sechs Wohnungen, Allgemeinstrom mit PV-Einspeisung und eine steuerbare Wallbox mit eigenem Zähler.',
+  text:'Eine Wohnungsbaugesellschaft errichtet ein Mehrfamilienhaus mit 6 Wohneinheiten. Auf dem Dach wird eine PV-Anlage installiert, im Hof eine Wallbox. Plane und bestücke den Zählerschrank.',
+  specs:['6 Wohneinheiten (je 2 pro Geschoss: EG, 1. OG, 2. OG) mit eigenem Zähler; Wohnungsverteiler in den Wohnungen','Allgemeinstrom (Treppenhaus mit Zeitschalter, Keller, Heizung) – die PV-Anlage (10 kWp) speist über einen Zweirichtungszähler in den Allgemeinstrom ein','Wallbox 11 kW mit eigenem Zähler und eigenem Stromkreisverteiler im Zählerschrank; steuerbar nach § 14a EnWG (Steuerbox)','Wallbox-Stromkreis mit allstromsensitivem FI (Typ B)','Wegen PV > 7 kWp und § 14a werden intelligente Messsysteme (Gateways) eingesetzt','Ein APZ für das Gebäude, Überspannungsschutz gewünscht'],
+  zp:8, vf:2, sf:1, labels:['Allgemein + PV','EG links','EG rechts','1. OG links','1. OG rechts','2. OG links','2. OG rechts','Wallbox'],
+  why:{zp:'6 Wohnungen + Allgemeinstrom (mit PV) + Wallbox = 8 Zähler', vf:'Verteiler für den Allgemeinstrom + eigener Verteiler für die Wallbox = 2 Verteilerfelder', sf:'SWM: Bei 6–15 Messeinrichtungen mit gesteuerter Messeinrichtung (Wallbox nach § 14a) ist ein seitliches RfZ-Feld vorzusehen'},
+  inv:{ehz:8,sh:8,stk:8,abk:8,smgw:2,stb:1,lsrfz:1,apz:1,spd1:1,spd2:1,hs:1,rcd:2,rcdb:1,ls16:3,ls10:2,tlz:1,lspv:1,lswb:1,nkl:2,pekl:2,hak:1,hes:1,ferr:1,dcfs:1},
+  req:{apz:1,lsrfz:1,rcd:1,ls16:1,tlz:1,stb:1,rcdb:1,lswb:1,lspv:1,smgw:2},
+  sol:{zp:[{aar:['abk','spd2'],zf:['ehz'],rfz:[],nar:['sh','spd1','lsrfz','stk']},
+           ...[1,2,3,4,5,6,7].map(()=>({aar:['abk'],zf:['ehz'],rfz:[],nar:['sh','stk']}))],
+       sf:{rfz0:['smgw','smgw','stb'],rfz1:[]},
+       vf:[{rows:[['rcd','ls16','ls16','ls16','ls10','ls10','tlz'],['lspv'],[]],kl:['nkl','pekl']},
+           {rows:[['rcdb','lswb'],[],[],[]],kl:['nkl','pekl']}]}},
+];
+
+// ---------- Zustand ----------
+let SC = null, ITEMS = [], IBY = {}, PLACE = {}, ZINFO = {};
+let zpCount = 1, vfCount = 1, sfCount = 0, RESULT = null, selected = null, zoom = 1;
+const ZP_MAX = 10, VF_MAX = 3;
+
+function loadScenario(sc){
+  SC = sc; ITEMS = [];
+  Object.entries(sc.inv).forEach(([id,n])=>{ for(let i=0;i<n;i++) ITEMS.push({uid:id+'_'+i, t:TBY[id]}); });
+  IBY = Object.fromEntries(ITEMS.map(i=>[i.uid,i]));
+  zpCount = 1; vfCount = 1; sfCount = 0; PLACE = {}; RESULT = null; selected = null; armedType = null;
+  document.getElementById('taskchip').textContent = sc.num+': '+sc.title;
+  document.getElementById('taskBody').innerHTML = `<p>${sc.text}</p><ul>${sc.specs.map(s=>`<li>${s}</li>`).join('')}</ul>
+    <p style="font-size:12.5px;margin:8px 0 0"><b>Netzgebiet:</b> SWM Infrastruktur (Stadtgebiet München) – es gelten VDE-AR-N 4100, TAB 2023 und die SWM-Hinweise zur TAB.</p>
+    <details><summary>SWM-Vorgaben zum Zählerplatz (Spickzettel)</summary><ul style="margin-top:6px;font-size:12.5px">
+      <li>Spannungsversorgung APZ/RfZ aus dem netzseitigen Anschlussraum, LS 10 A / 25 kA, je Zählerschrankgruppe</li>
+      <li>Je Zählerfeld eine 7-polige Steuerleitungsklemme (1–7) im unteren Anschlussraum, verdrahtet zum APZ und RfZ</li>
+      <li>Bis 5 Messeinrichtungen ohne gesteuerte Messeinrichtung: APZ nach VDE-AR-N 4100, Ziffer 7.7</li>
+      <li>6–15 Messeinrichtungen: seitliches RfZ-Feld (250 × 450 mm, 2 Hutschienen, plombierbar), max. 3 Gateways</li>
+      <li>Bis zu 5 Messeinrichtungen je Gateway</li>
+      <li>Kennzeichnung der Zählerplätze nach räumlicher Lage (z. B. „EG links“), nicht nach Namen</li>
+      <li>Zählerplätze mit 3-Punkt-Befestigung oder BKE-I zulässig (hier: BKE-I)</li></ul></details>
+    <p style="font-size:12.5px;color:var(--muted);margin-top:8px">1. Lege mit den Tastern über dem Schrank die Anzahl der Zählerfelder (je 1–2 Zähler) und Verteilerfelder fest.<br>2. Bestücke die Felder per Drag &amp; Drop.<br>3. Klicke auf <b>Bestückung prüfen</b>.</p>`;
+  resetResultText(); defaultInfo();
+  buildCabinet(); fitZoom();
+  document.getElementById('start').classList.add('hidden');
+}
+
+// ---------- Schrank aufbauen ----------
+function zoneHTML(id, kind, label, cls, extra=''){
+  ZINFO[id] = {kind, label};
+  if(!PLACE[id]) PLACE[id] = [];
+  return `<div class="zone z-${cls||kind}" data-zone="${id}"><span class="zlabel">${label}</span><div class="rail ${kind==='zf'||kind==='apz'?'norail':''}"><div class="slots" ${kind==='zf'||kind==='apz'?'style="justify-content:center"':''}></div></div>${extra}<span class="zcap"></span></div>`;
+}
+const BUSBARS = `<div class="busbars"><i style="background:#6b4a2b"></i><i style="background:#222"></i><i style="background:#888"></i><i style="background:#2a6fd1"></i><i style="background:repeating-linear-gradient(90deg,#4caf50 0 8px,#f2d335 8px 16px)"></i><div class="bbcap">Sammelschiene 5-polig (vorhanden)</div></div>`;
+function fieldLabel(i){ return (SC && SC.labels[i]) || 'Reserve'; }
+const isMeter = uid => ['ehz','ferr'].includes(IBY[uid].t.id);
+function meterLabels(){ // Kennzeichnung der Zähler in Einbaureihenfolge
+  const out = {}; let k = 0;
+  for(let i=0;i<zpCount;i++) (PLACE['zp'+i+'-zf']||[]).filter(u=>IBY[u].t.id==='ehz').forEach(u=>{ out[u] = fieldLabel(k++); });
+  return out;
+}
+function buildCabinet(){
+  ZINFO = {};
+  let h = '';
+  for(let i=0;i<zpCount;i++){
+    const p = 'zp'+i;
+    h += `<div class="field zp"><div class="fhead">Zählerfeld ${i+1}<span class="mlab" data-f="${i}">–</span></div>
+      ${zoneHTML(p+'-aar','aar','AAR – anlagenseitiger Anschlussraum')}
+      ${zoneHTML(p+'-zf','zf','Messeinrichtungen (BKE-I) – max. 2 Zähler')}
+      ${zoneHTML(p+'-rfz','rfz','Raum für Zusatzanwendungen (RfZ)')}
+      ${zoneHTML(p+'-nar','nar','NAR – netzseitiger Anschlussraum','nar',BUSBARS)}
+      <div class="feed ${i===0?'':'none'}" title="Hauptleitung vom HAK"></div></div>`;
+  }
+  if(sfCount){
+    h += `<div class="field sf"><div class="fhead">RfZ-Feld<span>seitlich, nach SWM</span></div>
+      ${zoneHTML('sf-rfz0','rfzs','RfZ-Feld – Hutschiene 1 (plombierbar)','v')}
+      ${zoneHTML('sf-rfz1','rfzs','RfZ-Feld – Hutschiene 2 (plombierbar)','v')}
+      <div class="blank">Freier Raum<br>(nicht zu bestücken)</div></div>`;
+  }
+  for(let j=0;j<vfCount;j++){
+    const p = 'vf'+j; let z = '';
+    const withApz = j===0;
+    const rows = withApz ? 3 : 4;
+    for(let r=0;r<rows;r++) z += zoneHTML(p+'-r'+r,'v','Stromkreisverteiler – Reihe '+(r+1),'v');
+    z += zoneHTML(p+'-kl','kl','Klemmenleiste');
+    if(withApz) z += zoneHTML(p+'-apz','apz','Abschlusspunkt Zählerplatz (APZ)');
+    h += `<div class="field vf"><div class="fhead">Verteilerfeld ${j+1}<span>${withApz?'mit APZ-Bereich':'Stromkreisverteiler'}</span></div>${z}</div>`;
+  }
+  document.getElementById('cabinet').innerHTML = h;
+  // Bauteile aus entfernten Feldern zurück in die Liste
+  Object.keys(PLACE).forEach(z=>{ if(!ZINFO[z]) delete PLACE[z]; });
+  if(selected && !zoneOf(selected)) selected = null;
+  if(typeof updateSel==='function') updateSel();
+  document.getElementById('zpN').textContent = zpCount;
+  document.getElementById('vfN').textContent = vfCount;
+  document.getElementById('sfN').textContent = sfCount;
+  document.querySelector('[data-step=sf][data-d="-1"]').disabled = sfCount<=0;
+  document.querySelector('[data-step=sf][data-d="1"]').disabled = sfCount>=1;
+  document.querySelector('[data-step=zp][data-d="-1"]').disabled = zpCount<=1;
+  document.querySelector('[data-step=zp][data-d="1"]').disabled = zpCount>=ZP_MAX;
+  document.querySelector('[data-step=vf][data-d="-1"]').disabled = vfCount<=1;
+  document.querySelector('[data-step=vf][data-d="1"]').disabled = vfCount>=VF_MAX;
+  const n = zpCount+vfCount+sfCount;
+  document.getElementById('cfginfo').innerHTML = `${n} Feld${n>1?'er':''} · Schrankbreite ca. ${n*250+50} mm`;
+  render();
+}
+function fieldHasItems(prefix){ return Object.keys(PLACE).some(z=>z.startsWith(prefix+'-') && PLACE[z].length); }
+document.querySelectorAll('[data-step]').forEach(b=>b.addEventListener('click',()=>{
+  const d = +b.dataset.d, k = b.dataset.step;
+  if(k==='zp'){
+    if(d<0 && fieldHasItems('zp'+(zpCount-1))) toast('Zählerfeld '+zpCount+' entfernt – seine Bauteile liegen wieder in der Liste.');
+    zpCount = Math.min(ZP_MAX, Math.max(1, zpCount+d));
+  } else if(k==='sf'){
+    if(d<0 && fieldHasItems('sf')) toast('RfZ-Feld entfernt – seine Bauteile liegen wieder in der Liste.');
+    sfCount = Math.min(1, Math.max(0, sfCount+d));
+  } else {
+    if(d<0 && fieldHasItems('vf'+(vfCount-1))) toast('Verteilerfeld '+vfCount+' entfernt – seine Bauteile liegen wieder in der Liste.');
+    vfCount = Math.min(VF_MAX, Math.max(1, vfCount+d));
+  }
+  clearResult(); buildCabinet(); fitZoom();
+}));
+
+// ---------- Zoom ----------
+function applyZoom(){ document.getElementById('cabinet').style.zoom = zoom; document.getElementById('zVal').textContent = Math.round(zoom*100)+' %'; }
+function fitZoom(){
+  const cab = document.getElementById('cabinet'), wrap = document.getElementById('cabWrap');
+  cab.style.zoom = 1;
+  const w = cab.offsetWidth, avail = wrap.clientWidth - 6;
+  const minZ = window.innerWidth < 700 ? .35 : .5;
+  zoom = Math.max(minZ, Math.min(1, Math.floor(avail / w * 20) / 20));
+  applyZoom();
+}
+document.getElementById('zIn').onclick = ()=>{ zoom = Math.min(1.5, +(zoom+.1).toFixed(2)); applyZoom(); };
+document.getElementById('zOut').onclick = ()=>{ zoom = Math.max(.3, +(zoom-.1).toFixed(2)); applyZoom(); };
+document.getElementById('zFit').onclick = fitZoom;
+let rT; window.addEventListener('resize', ()=>{ clearTimeout(rT); rT = setTimeout(fitZoom, 150); });
+
+// ---------- Darstellung ----------
+function screws(n){return '<s></s>'.repeat(n)}
+function devHTML(t){
+  const w = t.te*U;
+  switch(t.kind){
+    case 'mod': {
+      const n = Math.max(1, Math.round(t.te));
+      return `<div class="dv mod ${t.cls||''} ${t.te<=1?'one':''}" style="width:${w}px">
+        <div class="term">${screws(n)}</div>
+        <div class="face">${t.cls==='sh'?'<span class="plomb"></span>':''}<div class="lbl">${t.tag}</div>${t.dial?'<div class="dial"></div>':`<div class="lever" style="background:${t.lever}"></div>`}${t.test?'<div class="tbtn">T</div>':''}</div>
+        <div class="term">${screws(n)}</div></div>`;
+    }
+    case 'spd': {
+      let m=''; for(let i=0;i<4;i++) m+=`<div><span class="win"></span><span class="t">${i<3?'L'+(i+1):'N'}</span></div>`;
+      return `<div class="dv spd t${t.t}" style="width:${w}px">${m}</div>`;
+    }
+    case 'ehz': return `<div class="dv ehz"><div class="row"><span>eHZ · 3~</span><span class="led"></span></div><div class="lcd">1.8.0<br>04215,3 kWh</div><div class="row"><span>10(60) A</span><span class="opt"></span></div></div>`;
+    case 'box': return t.cls==='dc'
+      ? `<div class="dv box dc" style="width:${w}px"><div class="knob"></div>${t.tag}</div>`
+      : `<div class="dv box" style="width:${w}px"><div class="leds"><i></i><i></i><i></i></div>${t.tag}</div>`;
+    case 'apz': return `<div class="dv apz" style="width:${w}px"><div class="ports"><i></i><i></i></div>APZ<small>230 V · RJ45</small></div>`;
+    case 'kl': {
+      const k = t.color==='l5'?5:t.color==='st'?7:t.te*2; let s='';
+      const c5=['#6b4a2b','#222','#888','#2a6fd1','repeating-linear-gradient(135deg,#4caf50 0 5px,#f2d335 5px 10px)'];
+      for(let i=0;i<k;i++) s+= t.color==='l5'?`<i style="background:${c5[i]}"></i>`:'<i></i>';
+      return `<div class="dv termb" style="width:${w}px"><span class="tl">${t.tag}</span><div class="kl ${t.color}">${s}</div></div>`;
+    }
+    case 'hak': return `<div class="dv hak"><div class="nh"><i></i><i></i><i></i></div>HAK · NH00</div>`;
+    case 'hes': return `<div class="dv hes">${'<i></i>'.repeat(6)}</div>`;
+    case 'ferr': return `<div class="dv ferr">Ferraris · 3~<div class="win">0 4 2 1 5</div>75 U/kWh</div>`;
+  }
+}
+const cap = z => ZK[ZINFO[z].kind].cap;
+function zoneUsed(z, exclude){ return PLACE[z].reduce((s,u)=>s+(u===exclude?0:IBY[u].t.te),0); }
+function zoneOf(uid){ for(const z in PLACE) if(PLACE[z].includes(uid)) return z; return null; }
+function fmt(n){return (Math.round(n*10)/10).toString().replace('.',',')}
+function zoneName(z){
+  const [f] = z.split('-'); const k = ZINFO[z].kind;
+  if(f.startsWith('zp')){ const i=+f.slice(2); return `Zählerfeld ${i+1} – ${ZK[k].short}`; }
+  if(f==='sf') return `Seitliches RfZ-Feld`;
+  const j=+f.slice(2); return `Verteilerfeld ${j+1} – ${k==='v'?'Reihe '+(+z.split('-r')[1]+1):ZK[k].short}`;
+}
+
+function render(){
+  document.querySelectorAll('.zone').forEach(zel=>{
+    const z = zel.dataset.zone;
+    zel.querySelector('.slots').innerHTML = PLACE[z].map(uid=>{
+      const r = RESULT && RESULT[uid];
+      const badge = r ? `<span class="badge">${r.st==='ok'?'✓':r.st==='bad'?'✕':'!'}</span>` : '';
+      return `<div class="placed ${isMeter(uid)?'m':''} ${r?'st-'+r.st:''} ${selected===uid?'sel':''}" data-drag="1" data-uid="${uid}">${badge}${devHTML(IBY[uid].t)}</div>`;
+    }).join('');
+    zel.querySelector('.zcap').textContent = ZINFO[z].kind==='zf' ? PLACE[z].filter(isMeter).length+' / 2 Zähler' : fmt(zoneUsed(z))+' / '+cap(z)+' TE';
+  });
+  const ml = meterLabels();
+  document.querySelectorAll('.mlab').forEach(el=>{
+    const l = (PLACE['zp'+el.dataset.f+'-zf']||[]).filter(u=>ml[u]).map(u=>ml[u]);
+    el.textContent = l.length ? l.join(' · ') : 'leer';
+  });
+  const order = ['stk','rcd','ehz','spd2','hak','sh','ls16','apz','stb','nkl','rcdb','spd1','ferr','lsrfz','lspv','hs','tlz','ls10','smgw','dcfs','abk','lswb','pekl','hes','afdd'];
+  document.getElementById('pal').innerHTML = order.filter(id=>SC && SC.inv[id]).map(id=>{
+    const t = TBY[id];
+    const left = ITEMS.filter(i=>i.t.id===id && !zoneOf(i.uid)).length;
+    return `<div class="pcard ${left?'':'empty'} ${armedType===id?'arm':''}" data-drag="1" data-type="${id}"><span class="cnt">×${left}</span><div class="pv">${devHTML(t)}</div><div class="pname">${t.name}</div></div>`;
+  }).join('');
+}
+
+// ---------- Info ----------
+function showInfo(t, uid){
+  let h = `<h3>${t.name}</h3><p>${t.desc}</p>`;
+  if(uid && RESULT && RESULT[uid]) h += `<div class="where ${RESULT[uid].st}">${RESULT[uid].msg}</div>`;
+  else if(uid) h += `<p style="color:var(--muted);font-size:13px">Platziert in: <b>${zoneName(zoneOf(uid))}</b></p>`;
+  document.getElementById('infoBody').innerHTML = h;
+}
+function defaultInfo(){
+  document.getElementById('infoBody').innerHTML = `<p style="margin-top:0;color:var(--muted);font-size:13px">Klicke oder tippe ein Bauteil an, um seine Beschreibung zu sehen. Jeder Bereich hat eine begrenzte Breite in Teilungseinheiten (TE).</p>`;
+}
+function resetResultText(){ document.getElementById('resBody').innerHTML = '<p style="color:var(--muted);margin:0">Noch nicht geprüft.</p>'; }
+function clearResult(){ if(RESULT){ RESULT=null; document.getElementById('resBody').innerHTML='<p style="color:var(--muted);margin:0">Bestückung geändert – bitte erneut prüfen.</p>'; } }
+
+// ---------- Bedienung: Ziehen (Maus/Stift sofort, Touch per Langdruck) + Antippen & Ablegen ----------
+let drag = null, armedType = null, holdT = null;
+const toastEl = document.getElementById('toast'); let toastT;
+function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>toastEl.classList.remove('show'),2800); }
+const fits = (z,uid) => zoneUsed(z, uid) + IBY[uid].t.te <= cap(z) + 1e-6
+  && !(ZINFO[z].kind==='zf' && isMeter(uid) && PLACE[z].filter(u=>u!==uid && isMeter(u)).length >= 2);
+const freeOf = type => ITEMS.find(i=>i.t.id===type && !zoneOf(i.uid));
+
+// Bauteil in Bereich einsetzen (Position nach x-Koordinate)
+function placeInto(zoneEl, uid, clientX){
+  const z = zoneEl.dataset.zone, from = zoneOf(uid);
+  if(!fits(z,uid)){ toast(ZINFO[z].kind==='zf' && isMeter(uid) ? 'Ein Zählerfeld nimmt höchstens 2 Zähler auf.' : 'Kein Platz mehr in „'+zoneName(z)+'“.'); flashFull(zoneEl); return false; }
+  const kids = [...zoneEl.querySelectorAll('.placed')].filter(k=>k.dataset.uid!==uid);
+  const idx = clientX==null ? -1 : kids.findIndex(k=>{ const r=k.getBoundingClientRect(); return clientX < r.left + r.width/2; });
+  if(from) PLACE[from] = PLACE[from].filter(u=>u!==uid);
+  const list = PLACE[z], before = idx<0 ? null : kids[idx].dataset.uid;
+  list.splice(before ? list.indexOf(before) : list.length, 0, uid);
+  clearResult(); return true;
+}
+function toPalette(uid){
+  const from = zoneOf(uid); if(!from) return;
+  PLACE[from] = PLACE[from].filter(u=>u!==uid);
+  if(selected===uid) selected=null;
+  clearResult();
+}
+function flashFull(zel){ zel.classList.add('full'); setTimeout(()=>zel.classList.remove('full'),600); }
+
+// Auswahlleiste
+const selbar = document.getElementById('selbar');
+function disarm(){ armedType=null; selected=null; selbar.classList.remove('open'); updateSel(); render(); }
+function updateSel(){
+  document.body.classList.toggle('armed', !!(armedType||selected));
+  if(!armedType && !selected){ selbar.classList.add('hidden'); return; }
+  const t = armedType ? TBY[armedType] : IBY[selected].t;
+  const left = armedType ? ITEMS.filter(i=>i.t.id===armedType && !zoneOf(i.uid)).length : 0;
+  const r = selected && RESULT && RESULT[selected];
+  selbar.innerHTML = `<div class="sb-row"><div class="sb-txt"><b>${t.name}</b><span>${armedType ? (left? `Bereich im Schrank antippen zum Einsetzen (noch ×${left})` : 'Keine weiteren vorhanden') : 'Neuen Bereich antippen zum Verschieben'}</span></div>
+    <button class="sb-b" data-sb="info" aria-label="Beschreibung">ⓘ</button>
+    ${selected?'<button class="sb-b" data-sb="back">In Liste</button>':''}
+    <button class="sb-b" data-sb="x" aria-label="Auswahl aufheben">✕</button></div>
+    <div class="sb-more"><p>${t.desc}</p>${r?`<div class="where ${r.st}">${r.msg}</div>`:''}</div>`;
+  selbar.classList.remove('hidden');
+}
+selbar.addEventListener('click', e=>{
+  const b = e.target.closest('[data-sb]'); if(!b) return;
+  if(b.dataset.sb==='info') selbar.classList.toggle('open');
+  if(b.dataset.sb==='back'){ toPalette(selected); disarm(); }
+  if(b.dataset.sb==='x') disarm();
+});
+
+function onTap(d){
+  if(d.uid){ // eingebautes Bauteil
+    if(selected===d.uid){ disarm(); return; }
+    selected = d.uid; armedType = null; showInfo(IBY[d.uid].t, d.uid);
+  } else {
+    if(armedType===d.type){ disarm(); return; }
+    armedType = d.type; selected = null; showInfo(TBY[d.type]);
+  }
+  render(); updateSel();
+}
+// Tippen auf einen Bereich (nicht auf ein Bauteil) setzt das ausgewählte Bauteil ein
+document.addEventListener('click', e=>{
+  if(e.target.closest('[data-drag]') || e.target.closest('#selbar')) return;
+  const zel = e.target.closest('.zone');
+  if(zel && (armedType||selected)){
+    const uid = selected || (freeOf(armedType)||{}).uid;
+    if(!uid){ toast('Von diesem Bauteil ist keines mehr übrig.'); return; }
+    if(placeInto(zel, uid, e.clientX)){
+      if(selected) selected = null;
+      else if(!freeOf(armedType)) armedType = null;
+      render(); updateSel();
+    }
+    return;
+  }
+  if(selected && e.target.closest('#palette')){ toPalette(selected); disarm(); }
+});
+
+document.addEventListener('pointerdown', e=>{
+  const el = e.target.closest('[data-drag]'); if(!el || e.button>0) return;
+  const touch = e.pointerType==='touch';
+  if(!touch) e.preventDefault();
+  drag = {el, uid:el.dataset.uid||null, type:el.dataset.type||null, x0:e.clientX, y0:e.clientY, moved:false, touch, ready:!touch};
+  if(touch){ clearTimeout(holdT); holdT = setTimeout(()=>{ if(drag && !drag.moved){ drag.ready=true; drag.el.classList.add('lift'); } }, 280); }
+});
+document.addEventListener('touchmove', e=>{ if(drag && drag.ready) e.preventDefault(); }, {passive:false});
+document.addEventListener('contextmenu', e=>{ if(e.target.closest('[data-drag]')) e.preventDefault(); });
+document.addEventListener('pointermove', e=>{
+  if(!drag) return;
+  const dist = Math.hypot(e.clientX-drag.x0, e.clientY-drag.y0);
+  if(!drag.ready){ if(dist > 8){ clearTimeout(holdT); drag = null; } return; } // Touch: Wischen = Scrollen
+  if(!drag.moved){
+    if(dist < 5) return;
+    if(!drag.uid){ const free = freeOf(drag.type); if(!free){drag=null;return;} drag.uid = free.uid; }
+    drag.moved = true;
+    const g = document.createElement('div'); g.className='ghost'; g.innerHTML = devHTML(IBY[drag.uid].t); g.style.zoom = zoom;
+    document.body.appendChild(g); drag.ghost = g;
+    if(drag.el.classList.contains('placed')) drag.el.classList.add('dragging');
+  }
+  const g = drag.ghost, lift = drag.touch ? 50 : 0;
+  g.style.left = (e.clientX/zoom - g.offsetWidth/2)+'px'; g.style.top = ((e.clientY-lift)/zoom - g.offsetHeight/2)+'px';
+  highlight(e.clientX, e.clientY);
+});
+function targetAt(x,y){
+  const el = document.elementFromPoint(x,y); if(!el) return null;
+  const z = el.closest('.zone'); if(z) return {zone:z};
+  if(el.closest('#palette')) return {palette:true};
+  return null;
+}
+function clearHL(){ document.querySelectorAll('.zone.over,.zone.full').forEach(z=>z.classList.remove('over','full')); document.getElementById('palette').classList.remove('droptarget'); }
+function highlight(x,y){
+  clearHL(); const t = targetAt(x,y); if(!t) return;
+  if(t.palette){ document.getElementById('palette').classList.add('droptarget'); return; }
+  t.zone.classList.add(fits(t.zone.dataset.zone, drag.uid) ? 'over' : 'full');
+}
+document.addEventListener('pointerup', e=>{
+  clearTimeout(holdT);
+  if(!drag) return;
+  const d = drag; drag = null; d.el.classList.remove('lift');
+  if(!d.moved){ onTap(d); return; }
+  d.ghost.remove(); clearHL();
+  const t = targetAt(e.clientX, e.clientY);
+  if(t && t.zone) placeInto(t.zone, d.uid, e.clientX);
+  else if(zoneOf(d.uid) && (!t || t.palette)) toPalette(d.uid);
+  armedType = null; selected = null; render(); updateSel();
+});
+document.addEventListener('pointercancel', ()=>{ clearTimeout(holdT); if(drag){ drag.el.classList.remove('lift'); if(drag.ghost) drag.ghost.remove(); } drag=null; clearHL(); render(); });
+
+// ---------- Prüfung ----------
+function check(){
+  RESULT = {};
+  const errs=[], warns=[], oks=[], miss=[], omitted=[], cfg=[];
+  // 1) Konfiguration
+  const zpMin = Math.ceil(SC.zp/2);
+  if(zpCount < zpMin) cfg.push({st:'bad', msg:`<b>Zählerfelder: ${zpCount} geplant – zu wenig.</b> ${SC.why.zp}; je Zählerfeld passen höchstens 2 Zähler, also mindestens ${zpMin} Zählerfeld${zpMin>1?'er':''}.`});
+  else if(zpCount > SC.zp) cfg.push({st:'warn', msg:`<b>Zählerfelder: ${zpCount} geplant – mehr als nötig.</b> ${SC.why.zp}; ${SC.zp} Zählerfeld${SC.zp>1?'er':''} mit je 1 Zähler oder ${zpMin} mit je 2 Zählern reichen.`});
+  else cfg.push({st:'ok', msg:`<b>Zählerfelder: ${zpCount} – passt.</b> ${SC.why.zp} (max. 2 Zähler je Zählerfeld).`});
+  if(vfCount < SC.vf) cfg.push({st:'bad', msg:`<b>Verteilerfelder: ${vfCount} geplant, ${SC.vf} gefordert.</b> ${SC.why.vf}.`});
+  else if(vfCount > SC.vf) cfg.push({st:'warn', msg:`<b>Verteilerfelder: ${vfCount} geplant, ${SC.vf} würden reichen.</b> Reserve ist zulässig, macht den Schrank aber größer und teurer. ${SC.why.vf}.`});
+  else cfg.push({st:'ok', msg:`<b>Verteilerfelder: ${vfCount} – richtig.</b> ${SC.why.vf}.`});
+  if(SC.sf && !sfCount) cfg.push({st:'bad', msg:`<b>Seitliches RfZ-Feld fehlt.</b> ${SC.why.sf}.`});
+  else if(!SC.sf && sfCount) cfg.push({st:'warn', msg:`<b>Seitliches RfZ-Feld nicht erforderlich.</b> ${SC.why.sf}.`});
+  else if(SC.sf) cfg.push({st:'ok', msg:`<b>Seitliches RfZ-Feld – richtig.</b> ${SC.why.sf}.`});
+
+  // 2) Jedes Bauteil
+  for(const z in PLACE){
+    const kind = ZINFO[z].kind;
+    PLACE[z].forEach(uid=>{
+      const t = IBY[uid].t;
+      if(t.distractor){ RESULT[uid]={st:'bad',msg:t.bad}; errs.push({t,z,msg:t.bad}); return; }
+      if(t.zones.includes(kind)){ RESULT[uid]={st:'ok',msg:t.ok}; oks.push({t,z}); }
+      else {
+        const msg = (t.badBy&&t.badBy[kind]) ? t.badBy[kind] : `<b>Falscher Bereich.</b> ${ZK[kind].bad} → ${t.bad}`;
+        RESULT[uid]={st:'bad',msg}; errs.push({t,z,msg});
+      }
+    });
+  }
+  const okIn = (prefixKinds, id) => Object.keys(PLACE).filter(z=>prefixKinds(z)).flatMap(z=>PLACE[z]).filter(u=>IBY[u].t.id===id && RESULT[u].st!=='bad');
+
+  // 3) Je Zählerfeld: je Zähler ein SH-Schalter, je Feld eine Steuerleitungsklemme
+  let meters = 0;
+  for(let i=0;i<zpCount;i++){
+    const p='zp'+i, lab=`Zählerfeld ${i+1}`;
+    const shs = okIn(z=>z===p+'-nar','sh'), ehz = okIn(z=>z===p+'-zf','ehz'), stk = okIn(z=>z===p+'-nar','stk');
+    meters += ehz.length;
+    if(shs.length > ehz.length) shs.slice(ehz.length).forEach(u=>{
+      const m = ehz.length ? `Mehr SH-Schalter als Zähler in diesem Zählerfeld – je Zähler genau ein SH-Schalter.` : `SH-Schalter ohne Zähler – in diesem Zählerfeld sitzt keine Messeinrichtung.`;
+      RESULT[u]={st:'bad',msg:m}; errs.push({t:TBY.sh,z:p+'-nar',msg:m}); });
+    if(ehz.length){
+      if(shs.length < ehz.length) miss.push({name:`${lab}: ${ehz.length} Zähler, aber ${shs.length} SH-Schalter`, msg:'Jeder Zähler braucht im NAR seine eigene sperr- und plombierbare Trennvorrichtung (SH-Schalter).'});
+      if(!stk.length) miss.push({name:lab+': Steuerleitungsklemme fehlt', msg:TBY.stk.bad});
+    } else if(zpCount <= SC.zp){
+      const w = `${lab} ist leer – es fehlt die Messeinrichtung.`;
+      if(!warns.includes(w)) warns.push(w);
+    }
+  }
+  if(meters < SC.zp) miss.push({name:`Zähler: ${meters} von ${SC.zp} eingebaut`, msg:`${SC.why.zp}. Jeder Zähler wird auf eine BKE-I im Zählerfeld gesteckt (max. 2 je Zählerfeld).`});
+  // 4) Je Verteilerfeld mit Geräten: N- und PE-Klemmen
+  for(let j=0;j<vfCount;j++){
+    const p='vf'+j;
+    const used = Object.keys(PLACE).some(z=>z.startsWith(p+'-r') && PLACE[z].some(u=>RESULT[u].st!=='bad'));
+    if(!used) continue;
+    if(!okIn(z=>z===p+'-kl','nkl').length) miss.push({name:`Verteilerfeld ${j+1}: N-Klemmen fehlen`, msg:TBY.nkl.bad});
+    if(!okIn(z=>z===p+'-kl','pekl').length) miss.push({name:`Verteilerfeld ${j+1}: PE-Klemmen fehlen`, msg:TBY.pekl.bad});
+  }
+  // 5) Weitere Pflichtbauteile laut Aufgabe
+  Object.entries(SC.req).forEach(([id,min])=>{
+    const have = okIn(()=>true,id).length;
+    if(have < min) miss.push({name:TBY[id].name+(min>1?` (${have} von ${min})`:''), msg:id==='smgw'?'Nach den SWM-Hinweisen werden bis zu 5 Messeinrichtungen über ein Gateway angebunden – bei 8 Messeinrichtungen sind 2 Gateways nötig.':TBY[id].bad});
+  });
+  SC.inv && Object.keys(SC.inv).map(id=>TBY[id]).filter(t=>t.distractor).forEach(t=>{ if(!ITEMS.some(i=>i.t===t && zoneOf(i.uid))) omitted.push(t); });
+
+  // 6) Hinweise
+  if(SC.sf && sfCount){
+    ['stb','smgw'].forEach(id=> okIn(()=>true,id).forEach(u=>{
+      if(ZINFO[zoneOf(u)].kind!=='rfzs'){ const m=`${TBY[id].name}: Nach den SWM-Hinweisen gehört die Steuer- und Kommunikationstechnik bei 6–15 Messeinrichtungen in das seitliche RfZ-Feld.`; RESULT[u]={st:'warn',msg:m}; if(!warns.includes(m)) warns.push(m); }
+    }));
+  }
+  Object.keys(PLACE).filter(z=>ZINFO[z].kind==='v').forEach(z=>{
+    const list = PLACE[z].map(u=>IBY[u]);
+    const firstRcd = list.findIndex(i=>i.t.id==='rcd'||i.t.id==='rcdb');
+    list.forEach((it,k)=>{
+      if(RESULT[it.uid].st!=='ok') return;
+      let w=null;
+      if(it.t.id==='lswb' && !list.some(i=>i.t.id==='rcdb'))
+        w = `${zoneName(z)}: Für den Wallbox-Stromkreis fehlt in dieser Reihe der allstromsensitive FI Typ B.`;
+      else if(['ls16','ls10','afdd','tlz'].includes(it.t.id)){
+        if(firstRcd<0) w = `${zoneName(z)}: Kein FI-Schutzschalter in dieser Reihe. Endstromkreise werden üblicherweise über einen RCD in derselben Reihe (Kammschiene) versorgt.`;
+        else if(k<firstRcd) w = `${zoneName(z)}: ${it.t.name} sitzt links vom FI. Üblich: FI links, zugehörige Geräte rechts daneben.`;
+      }
+      if(w){ RESULT[it.uid]={st:'warn',msg:w}; if(!warns.includes(w)) warns.push(w); }
+    });
+  });
+
+  // Auswertung
+  const placedCount = Object.values(PLACE).reduce((s,l)=>s+l.length,0);
+  const good = Object.values(RESULT).filter(r=>r.st!=='bad').length + cfg.filter(c=>c.st!=='bad').length;
+  const total = placedCount + miss.length + cfg.length;
+  const pct = total? Math.round(100*good/total) : 0;
+  const cfgBad = cfg.some(c=>c.st==='bad');
+
+  let h = `<div class="score"><b>${good}</b><span>von ${total} Punkten (${pct} %)</span></div><div class="bar"><i style="width:${pct}%"></i></div>`;
+  if(placedCount && !errs.length && !miss.length && !cfgBad)
+    h += `<div class="allgood">✓ Alles zulässig! Der Zählerschrank ist korrekt geplant und bestückt.${warns.length||cfg.some(c=>c.st==='warn')?' Beachte noch die Hinweise.':''}</div>`;
+  h += '<div class="res">';
+  h += `<h4>Planung der Felder</h4><ul>${cfg.map(c=>`<li class="${c.st}">${c.msg}</li>`).join('')}</ul>`;
+  if(errs.length) h += `<h4 class="bad">Falsch platziert (${errs.length})</h4><ul>${errs.map(e=>`<li class="bad"><b>${e.t.name}</b>in: ${zoneName(e.z)}<br>${e.msg}</li>`).join('')}</ul>`;
+  if(miss.length) h += `<h4 class="bad">Es fehlt (${miss.length})</h4><ul>${miss.map(m=>`<li class="miss"><b>${m.name}</b>${m.msg}</li>`).join('')}</ul>`;
+  if(warns.length) h += `<h4 class="warn">Hinweise (${warns.length})</h4><ul>${warns.map(w=>`<li class="warn">${w}</li>`).join('')}</ul>`;
+  if(oks.length || omitted.length) h += `<details><summary>Richtig gelöst (${oks.length + omitted.length})</summary><ul style="margin-top:6px">${
+      oks.map(o=>`<li class="ok"><b>${o.t.name}</b>${zoneName(o.z)} – ${o.t.ok}</li>`).join('') + omitted.map(t=>`<li class="ok"><b>${t.name}</b>${t.omit}</li>`).join('')}</ul></details>`;
+  h += '</div>';
+  document.getElementById('resBody').innerHTML = h;
+  render();
+  if(selected && IBY[selected] && zoneOf(selected)) showInfo(IBY[selected].t, selected);
+}
+
+// ---------- Musterlösung ----------
+function solve(){
+  zpCount = SC.zp; vfCount = SC.vf; sfCount = SC.sf; PLACE = {}; RESULT = null; selected = null; armedType = null;
+  buildCabinet();
+  const used = new Set();
+  const take = id => { const it = ITEMS.find(i=>i.t.id===id && !used.has(i.uid)); used.add(it.uid); return it.uid; };
+  SC.sol.zp.forEach((f,i)=>['aar','zf','rfz','nar'].forEach(k=>{ PLACE['zp'+i+'-'+k] = (f[k]||[]).map(take); }));
+  if(SC.sol.sf) Object.entries(SC.sol.sf).forEach(([k,l])=> PLACE['sf-'+k] = l.map(take));
+  SC.sol.vf.forEach((f,j)=>{
+    if(j===0) PLACE['vf0-apz'] = [take('apz')];
+    f.rows.forEach((r,ri)=> PLACE['vf'+j+'-r'+ri] = r.map(take));
+    PLACE['vf'+j+'-kl'] = f.kl.map(take);
+  });
+  fitZoom(); check();
+  const out = Object.keys(SC.inv).filter(id=>TBY[id].distractor).map(id=>TBY[id].name.split(' (')[0]);
+  toast('Musterlösung eingesetzt – nicht eingebaut: '+out.join(', ')+'.');
+}
+
+// ---------- Start & Buttons ----------
+document.getElementById('cards').innerHTML = SCEN.map((s,i)=>`<button class="scard" data-sc="${i}">
+  <div class="pic">${s.svg}</div>
+  <div class="body"><span class="num">${s.num}</span><h3>${s.title}</h3><p>${s.teaser}</p><span class="lvl">${s.lvl}</span><span class="go">Aufgabe starten →</span></div></button>`).join('');
+document.querySelectorAll('.scard').forEach(c=>c.addEventListener('click',()=>loadScenario(SCEN[+c.dataset.sc])));
+document.getElementById('btnTask').onclick = ()=> document.getElementById('start').classList.remove('hidden');
+document.getElementById('start').addEventListener('click', e=>{ if(e.target.id==='start' && SC) e.currentTarget.classList.add('hidden'); });
+document.getElementById('btnReset').onclick = ()=>{ if(SC) loadScenario(SC); };
+document.getElementById('btnCheck').onclick = ()=>{ if(SC){ document.body.classList.remove('noside'); check(); fitZoom();
+  if(window.innerWidth<=1400) document.getElementById('result').scrollIntoView({behavior:'smooth', block:'start'}); } };
+document.getElementById('btnSide').onclick = ()=>{ document.body.classList.toggle('noside'); fitZoom(); };
+// Lösung nur mit Code
+const codeDlg = document.getElementById('codeDlg'), codeIn = document.getElementById('codeIn'), codeMsg = document.getElementById('codeMsg');
+function closeCode(){ codeDlg.classList.add('hidden'); codeIn.value=''; codeMsg.textContent=''; codeIn.classList.remove('err'); }
+document.getElementById('btnSolve').onclick = ()=>{ if(!SC) return; codeDlg.classList.remove('hidden'); setTimeout(()=>codeIn.focus(),30); };
+codeIn.addEventListener('input', ()=>{ codeIn.value = codeIn.value.replace(/\D/g,'').slice(0,4); codeMsg.textContent=''; codeIn.classList.remove('err'); });
+document.getElementById('codeCancel').onclick = closeCode;
+codeDlg.addEventListener('click', e=>{ if(e.target===codeDlg) closeCode(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !codeDlg.classList.contains('hidden')) closeCode(); });
+document.getElementById('codeForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  if(codeIn.value.length!==4){ codeMsg.textContent='Bitte genau 4 Ziffern eingeben.'; codeIn.classList.add('err'); return; }
+  if(codeIn.value!=='1930'){ codeMsg.textContent='Falscher Code.'; codeIn.classList.remove('err'); void codeIn.offsetWidth; codeIn.classList.add('err'); codeIn.select(); return; }
+  closeCode(); solve();
+});
+document.getElementById('hideLabels').onchange = e=> document.body.classList.toggle('nolabels', e.target.checked);
+</script>
+</body>
+</html>
