@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ohm-Labor Taschenlampe</title>
+<style>
+:root{
+  /* FFBS-Farben, ein heller Laborplatz: links Schaltung + Regler, rechts Kennlinien */
+  --navy:#3F4A6E; --gruen:#71B390; --hellgruen:#E6F2EB; --papier:#F7F8FA; --linie:#D5D9E3; --text:#1E2333;
+  --warn:#C0392B; --gelb:#F5C542;
+  --font: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--papier);color:var(--text);font-family:var(--font)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+header h1{margin:0;font-size:22px;text-wrap:balance}
+header p{margin:0;font-size:15px;opacity:.85}
+main{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:16px;padding:16px;max-width:1300px;margin:0 auto}
+@media (max-width:820px){main{grid-template-columns:1fr}}
+.karte{background:#fff;border:1px solid var(--linie);border-radius:10px;padding:14px}
+.karte h2{margin:0 0 10px;font-size:16px;color:var(--navy)}
+.reihe{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-size:14px;border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:8px;padding:7px 10px;cursor:pointer}
+button[aria-pressed="true"]{background:var(--navy);color:#fff}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gruen);outline-offset:2px}
+button.voll{background:var(--gruen);border-color:var(--gruen);color:#fff;font-weight:bold}
+label{display:block;font-size:14px;margin:12px 0 4px}
+input[type=range]{width:100%;accent-color:var(--navy)}
+.wert{font-variant-numeric:tabular-nums;font-weight:bold}
+.anzeigen{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.mm{background:#F2C200;border:3px solid #333;border-radius:12px;padding:8px;text-align:center}
+.mm .lcd{background:#CFE0C7;border:2px solid #333;border-radius:4px;font-family:"Courier New",monospace;font-size:26px;font-weight:bold;padding:4px;font-variant-numeric:tabular-nums}
+.mm .art{font-size:13px;font-weight:bold;margin-top:4px}
+svg{max-width:100%;height:auto;display:block}
+.status{margin-top:10px;padding:8px 10px;border-radius:8px;background:var(--hellgruen);font-size:14px;border-left:5px solid var(--gruen)}
+.status.warn{background:#FBE9E7;border-left-color:var(--warn)}
+.diagramme{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:1050px){.diagramme{grid-template-columns:1fr}}
+canvas{width:100%;height:auto;display:block}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{border:1px solid var(--linie);padding:5px 8px;text-align:right}
+th{background:var(--hellgruen);color:var(--navy);text-align:center}
+.tabwrap{overflow-x:auto;max-height:230px;overflow-y:auto}
+.fragen{grid-column:1/-1}
+.fragen ol{margin:6px 0 0 20px;padding:0;line-height:1.55}
+.klein{font-size:13px;color:#555}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ohm-Labor: Taschenlampe</h1>
+  <p>Spannung und Widerstand einstellen – Strom, Helligkeit und Kennlinien beobachten</p>
+</header>
+<main>
+  <section class="karte" aria-label="Schaltung und Einstellungen">
+    <h2>1 · Schaltung</h2>
+    <svg id="schaltung" viewBox="0 0 400 230" role="img" aria-label="Stromkreis mit Spannungsquelle, Strommesser, Verbraucher und Spannungsmesser">
+      <g stroke="#1E2333" stroke-width="3" fill="none">
+        <line x1="60" y1="40" x2="60" y2="98"/><line x1="60" y1="122" x2="60" y2="190"/>
+        <line x1="60" y1="40" x2="150" y2="40"/><line x1="190" y1="40" x2="280" y2="40"/>
+        <line x1="280" y1="40" x2="280" y2="85"/><line x1="280" y1="145" x2="280" y2="190"/>
+        <line x1="60" y1="190" x2="280" y2="190"/>
+        <line x1="280" y1="60" x2="360" y2="60"/><line x1="280" y1="170" x2="360" y2="170"/>
+        <line x1="360" y1="60" x2="360" y2="95"/><line x1="360" y1="135" x2="360" y2="170"/>
+      </g>
+      <line x1="35" y1="98" x2="85" y2="98" stroke="#1E2333" stroke-width="3"/>
+      <line x1="47" y1="122" x2="73" y2="122" stroke="#1E2333" stroke-width="8"/>
+      <text x="20" y="96" font-size="18" font-weight="bold">+</text>
+      <text x="8" y="150" font-size="14" id="txtU">3,0 V</text>
+      <circle cx="170" cy="40" r="20" fill="#fff" stroke="#1E2333" stroke-width="3"/><text x="170" y="47" text-anchor="middle" font-size="20" font-weight="bold">A</text>
+      <circle cx="360" cy="115" r="20" fill="#fff" stroke="#1E2333" stroke-width="3"/><text x="360" y="122" text-anchor="middle" font-size="20" font-weight="bold">V</text>
+      <circle cx="280" cy="60" r="4" fill="#1E2333"/><circle cx="280" cy="170" r="4" fill="#1E2333"/>
+      <circle id="glow" cx="280" cy="115" r="48" fill="#F5C542" opacity="0"/>
+      <g id="symLampe">
+        <circle cx="280" cy="115" r="28" fill="#fff" stroke="#1E2333" stroke-width="3"/>
+        <line x1="260" y1="95" x2="300" y2="135" stroke="#1E2333" stroke-width="3"/><line x1="260" y1="135" x2="300" y2="95" stroke="#1E2333" stroke-width="3"/>
+      </g>
+      <g id="symR" style="display:none">
+        <rect x="266" y="85" width="28" height="60" fill="#fff" stroke="#1E2333" stroke-width="3"/>
+      </g>
+      <text x="200" y="120" text-anchor="end" font-size="14" id="txtR">R = 17,5 Ω</text>
+    </svg>
+
+    <label>Verbraucher</label>
+    <div class="reihe" role="group" aria-label="Verbraucher wählen">
+      <button data-lampe="0" aria-pressed="false">Lämpchen 2,5 V / 0,3 A</button>
+      <button data-lampe="1" aria-pressed="true">Lämpchen 3,5 V / 0,2 A</button>
+      <button data-lampe="2" aria-pressed="false">Lämpchen 12 V / 0,1 A</button>
+      <button data-lampe="-1" aria-pressed="false">Widerstand frei wählen</button>
+    </div>
+
+    <label for="sU">Spannung der Quelle U = <span class="wert" id="wU">3,0 V</span></label>
+    <input id="sU" type="range" min="0" max="6" step="0.1" value="3">
+
+    <label for="sR">Widerstand R = <span class="wert" id="wR">17,5 Ω</span></label>
+    <input id="sR" type="range" min="5" max="500" step="0.5" value="17.5" disabled>
+
+    <div class="anzeigen">
+      <div class="mm"><div class="lcd" id="dU">3.00</div><div class="art">Spannungsmesser · V⎓</div></div>
+      <div class="mm"><div class="lcd" id="dI">171.4</div><div class="art">Strommesser · mA⎓</div></div>
+    </div>
+    <div class="status" id="status" role="status"></div>
+    <p class="klein">Vereinfachung: Die Lämpchen werden mit ihrem Widerstand im Nennbetrieb gerechnet. Ein echter Glühfaden hat kalt einen kleineren Widerstand.</p>
+
+    <div class="reihe" style="margin-top:8px">
+      <button class="voll" id="btnMerk">Messwert notieren</button>
+      <button id="btnLeer">Tabelle leeren</button>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:16px">
+    <div class="diagramme">
+      <div class="karte"><h2>2 · Kennlinie I = f(U) bei festem R</h2><canvas id="cIU" width="560" height="380" aria-label="Strom über Spannung"></canvas></div>
+      <div class="karte"><h2>3 · Kennlinie I = f(R) bei fester U</h2><canvas id="cIR" width="560" height="380" aria-label="Strom über Widerstand"></canvas></div>
+    </div>
+    <div class="karte">
+      <h2>4 · Meine Messwerte</h2>
+      <div class="tabwrap"><table><thead><tr><th>Nr.</th><th>Verbraucher</th><th>U in V</th><th>R in Ω</th><th>I in mA</th><th>R · I in V</th></tr></thead><tbody id="tab"></tbody></table></div>
+    </div>
+    <div class="karte fragen">
+      <h2>Forscherfragen</h2>
+      <ol>
+        <li>Stellen Sie das Lämpchen 3,5 V / 0,2 A ein. Verdoppeln Sie die Spannung von 1,5 V auf 3,0 V. Was passiert mit dem Strom?</li>
+        <li>Wählen Sie „Widerstand frei wählen“ bei 3,0 V. Verdoppeln Sie R von 50 Ω auf 100 Ω. Was passiert mit dem Strom?</li>
+        <li>Notieren Sie mehrere Messwerte. Was fällt Ihnen in der Spalte R · I auf?</li>
+        <li>Setzen Sie bei 3,0 V nacheinander alle drei Lämpchen ein. Welches passt in die Taschenlampe von Herrn Kaya – und warum glimmt das 12-V-Lämpchen nur?</li>
+      </ol>
+    </div>
+  </section>
+</main>
+<script>
+const LAMPEN=[{name:"2,5 V / 0,3 A",UN:2.5,IN:0.3},{name:"3,5 V / 0,2 A",UN:3.5,IN:0.2},{name:"12 V / 0,1 A",UN:12,IN:0.1}];
+let lampe=1, U=3, R=17.5, messungen=[];
+const $=id=>document.getElementById(id);
+const de=(x,d)=>x.toLocaleString("de-DE",{minimumFractionDigits:d,maximumFractionDigits:d});
+function fmtR(r){return r>=100?de(r,0):de(r,r<10?2:1)}
+
+function rechne(){
+  if(lampe>=0){R=LAMPEN[lampe].UN/LAMPEN[lampe].IN;}
+  const I=U/R; // in A
+  $("wU").textContent=de(U,1)+" V"; $("txtU").textContent=de(U,1)+" V";
+  $("wR").textContent=fmtR(R)+" Ω"; $("txtR").textContent="R = "+fmtR(R)+" Ω";
+  $("sR").value=R; $("sR").disabled=lampe>=0;
+  $("dU").textContent=U.toFixed(2); $("dI").textContent=(I*1000).toFixed(1);
+  $("symLampe").style.display=lampe>=0?"":"none"; $("symR").style.display=lampe>=0?"none":"";
+  const st=$("status");
+  if(lampe>=0){
+    const L=LAMPEN[lampe], v=I/L.IN;
+    $("glow").setAttribute("opacity",Math.min(1,v*v).toFixed(2));
+    let t;
+    if(v>1.05){t="Strom "+de(I*1000,0)+" mA ist größer als der Bemessungsstrom "+de(L.IN*1000,0)+" mA: Das Lämpchen ist überlastet und brennt bald durch.";st.className="status warn";}
+    else if(v>0.7){t="Strom "+de(I*1000,0)+" mA liegt nahe am Bemessungsstrom "+de(L.IN*1000,0)+" mA: Das Lämpchen leuchtet hell.";st.className="status";}
+    else if(v>0.3){t="Strom "+de(I*1000,0)+" mA ist deutlich kleiner als der Bemessungsstrom: Das Lämpchen leuchtet schwach.";st.className="status";}
+    else {t="Nur "+de(I*1000,1)+" mA statt "+de(L.IN*1000,0)+" mA: Das Lämpchen glimmt kaum.";st.className="status";}
+    st.textContent=t;
+  } else {$("glow").setAttribute("opacity",0);st.className="status";st.textContent="Festwiderstand: I = "+de(I*1000,1)+" mA";}
+  zeichneIU(); zeichneIR();
+}
+function achsen(ctx,W,H,xmax,ymax,xl,yl,xstep,ystep){
+  const L=60,B=50,T=20,Rr=20,w=W-L-Rr,h=H-T-B;
+  ctx.clearRect(0,0,W,H);ctx.font="15px Arial";ctx.fillStyle="#1E2333";ctx.strokeStyle="#D5D9E3";ctx.lineWidth=1;
+  for(let x=0;x<=xmax+1e-9;x+=xstep){const px=L+x/xmax*w;ctx.beginPath();ctx.moveTo(px,T);ctx.lineTo(px,T+h);ctx.stroke();ctx.textAlign="center";ctx.fillText(de(x,xstep<1?1:0),px,T+h+20);}
+  for(let y=0;y<=ymax+1e-9;y+=ystep){const py=T+h-y/ymax*h;ctx.beginPath();ctx.moveTo(L,py);ctx.lineTo(L+w,py);ctx.stroke();ctx.textAlign="right";ctx.fillText(de(y,0),L-8,py+5);}
+  ctx.strokeStyle="#1E2333";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(L,T+h);ctx.lineTo(L+w,T+h);ctx.stroke();
+  ctx.font="bold 15px Arial";ctx.textAlign="right";ctx.fillText(xl,L+w,T+h+42);ctx.textAlign="left";ctx.fillText(yl,L+6,T+14);
+  return {px:x=>L+x/xmax*w,py:y=>T+h-y/ymax*h,L,T,w,h};
+}
+function niceMax(v){const s=[10,20,50,100,200,300,500,1000];for(const x of s)if(v<=x)return x;return Math.ceil(v/500)*500}
+function zeichneIU(){
+  const c=$("cIU"),ctx=c.getContext("2d");const Imax=niceMax(6/R*1000*1.05);
+  const a=achsen(ctx,c.width,c.height,6,Imax,"U in V","I in mA",1,Imax/5);
+  ctx.strokeStyle="#3F4A6E";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a.px(0),a.py(0));ctx.lineTo(a.px(6),a.py(6/R*1000));ctx.stroke();
+  messungen.filter(m=>Math.abs(m.R-R)<1e-6).forEach(m=>{ctx.fillStyle="#71B390";ctx.beginPath();ctx.arc(a.px(m.U),a.py(m.I),6,0,7);ctx.fill();});
+  const I=U/R*1000;ctx.fillStyle="#C0392B";ctx.beginPath();ctx.arc(a.px(U),a.py(I),8,0,7);ctx.fill();
+  ctx.fillStyle="#1E2333";ctx.font="14px Arial";ctx.textAlign="left";ctx.fillText("R = "+fmtR(R)+" Ω",a.px(0)+10,a.py(Imax)+34);
+}
+function zeichneIR(){
+  const c=$("cIR"),ctx=c.getContext("2d");const Imax=niceMax(Math.max(U/10*1000,1));
+  const a=achsen(ctx,c.width,c.height,500,Imax,"R in Ω","I in mA",100,Imax/5);
+  ctx.save();ctx.beginPath();ctx.rect(a.L,a.T,a.w,a.h);ctx.clip();
+  ctx.strokeStyle="#3F4A6E";ctx.lineWidth=3;ctx.beginPath();
+  for(let r=10;r<=500;r+=1){const x=a.px(r),y=a.py(U/r*1000);r===10?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();ctx.restore();
+  messungen.filter(m=>Math.abs(m.U-U)<1e-6).forEach(m=>{ctx.fillStyle="#71B390";ctx.beginPath();ctx.arc(a.px(m.R),a.py(m.I),6,0,7);ctx.fill();});
+  if(R<=500){ctx.fillStyle="#C0392B";ctx.beginPath();ctx.arc(a.px(R),a.py(U/R*1000),8,0,7);ctx.fill();}
+  ctx.fillStyle="#1E2333";ctx.font="14px Arial";ctx.textAlign="right";ctx.fillText("U = "+de(U,1)+" V",a.L+a.w-8,a.T+34);
+}
+function tabelle(){
+  $("tab").innerHTML=messungen.map((m,i)=>`<tr><td>${i+1}</td><td style="text-align:left">${m.n}</td><td>${de(m.U,1)}</td><td>${fmtR(m.R)}</td><td>${de(m.I,1)}</td><td>${de(m.R*m.I/1000,2)}</td></tr>`).join("")||'<tr><td colspan="6" style="text-align:center;color:#666">Noch keine Messwerte – stellen Sie U und R ein und klicken Sie „Messwert notieren“.</td></tr>';
+}
+document.querySelectorAll("[data-lampe]").forEach(b=>b.addEventListener("click",()=>{
+  lampe=+b.dataset.lampe;document.querySelectorAll("[data-lampe]").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  if(lampe<0)R=+$("sR").value||100;rechne();}));
+$("sU").addEventListener("input",e=>{U=+e.target.value;rechne();});
+$("sR").addEventListener("input",e=>{R=+e.target.value;rechne();});
+$("btnMerk").addEventListener("click",()=>{messungen.push({n:lampe>=0?"Lämpchen "+LAMPEN[lampe].name:"Widerstand",U,R,I:U/R*1000});tabelle();rechne();});
+$("btnLeer").addEventListener("click",()=>{messungen=[];tabelle();rechne();});
+// Beispielwerte, damit die Seite nicht leer startet
+messungen=[{n:"Lämpchen 3,5 V / 0,2 A",U:1.5,R:17.5,I:1.5/17.5*1000},{n:"Lämpchen 3,5 V / 0,2 A",U:3,R:17.5,I:3/17.5*1000}];
+tabelle();rechne();
+</script>
+</body>
+</html>
